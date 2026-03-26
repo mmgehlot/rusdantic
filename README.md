@@ -44,7 +44,7 @@ fn main() {
         Err(e) => println!("Validation Errors: \n{}", e),
     }
 }
-
+```
 🛠 Features vs. The "Standard" Stack
 
 | Feature | Serde + Validator | Rusdantic |
