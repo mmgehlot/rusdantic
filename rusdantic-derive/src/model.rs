@@ -144,9 +144,17 @@ pub struct ValidatedField {
     pub ident: Ident,
     /// Rust type of the field
     pub ty: Type,
-    /// The serialized/deserialized name (after rename_all / serde rename).
-    /// Used in error paths and JSON keys.
+    /// The primary serialized name for this field (used in serialization output,
+    /// error paths, and JSON Schema). Determined by:
+    /// serialization_alias > alias > rename_all > rust field name
     pub serialized_name: String,
+    /// The primary deserialization name (used to match JSON keys during parsing).
+    /// Determined by: validation_alias > alias > rename_all > rust field name.
+    /// When an alias is set, BOTH the alias and the original name are accepted.
+    pub deserialization_key: String,
+    /// Additional names accepted during deserialization. When an alias is set,
+    /// the Rust field name (after rename_all) is also accepted.
+    pub deserialization_aliases: Vec<String>,
     /// Whether this field's type is `Option<T>` (validators skip on None)
     pub is_option: bool,
     /// Whether this field's type is a collection (`Vec<T>`, `HashSet<T>`, etc.)

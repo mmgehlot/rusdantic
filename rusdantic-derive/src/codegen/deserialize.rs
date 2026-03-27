@@ -81,18 +81,27 @@ pub fn generate_deserialize_impl(validated: &ValidatedStruct) -> TokenStream {
         })
         .collect();
 
-    // Generate match arms for the field deserializer: string name -> enum variant
+    // Generate match arms for the field deserializer: string name -> enum variant.
+    // Each field's deserialization_key is the primary match, plus any aliases.
     let field_match_arms: Vec<TokenStream> = deser_fields
         .iter()
-        .map(|f| {
+        .flat_map(|f| {
             let variant = format_ident!("__field_{}", f.ident);
-            let serialized = &f.serialized_name;
-            quote! { #serialized => Ok(__Field::#variant) }
+            let primary = &f.deserialization_key;
+            let mut arms = vec![quote! { #primary => Ok(__Field::#variant) }];
+            // Add additional alias match arms
+            for alias in &f.deserialization_aliases {
+                arms.push(quote! { #alias => Ok(__Field::#variant) });
+            }
+            arms
         })
         .collect();
 
     // Generate the list of known field names for the `expecting` message
-    let known_fields: Vec<&str> = deser_fields.iter().map(|f| f.serialized_name.as_str()).collect();
+    let known_fields: Vec<&str> = deser_fields
+        .iter()
+        .map(|f| f.deserialization_key.as_str())
+        .collect();
     let known_fields_array = quote! { &[#(#known_fields),*] };
 
     // Handle deny_unknown_fields: generate error for unknown keys

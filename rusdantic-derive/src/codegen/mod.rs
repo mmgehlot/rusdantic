@@ -152,11 +152,39 @@ fn convert_field(
         )
     })?;
 
-    // Determine the serialized name by applying rename_all if present
+    // Determine the serialized/deserialized names.
+    // Priority for serialization: serialization_alias > alias > rename_all > raw name
+    // Priority for deserialization: validation_alias > alias > rename_all > raw name
     let raw_name = ident.to_string();
-    let serialized_name = rename_all
+    let renamed = rename_all
         .map(|r| r.apply(&raw_name))
         .unwrap_or_else(|| raw_name.clone());
+
+    // Serialization name: what appears in JSON output
+    let serialized_name = field
+        .serialization_alias
+        .as_ref()
+        .or(field.alias.as_ref())
+        .cloned()
+        .unwrap_or_else(|| renamed.clone());
+
+    // Deserialization key: what's matched during JSON parsing
+    let deserialization_key = field
+        .validation_alias
+        .as_ref()
+        .or(field.alias.as_ref())
+        .cloned()
+        .unwrap_or_else(|| renamed.clone());
+
+    // Additional aliases: when an alias is set, also accept the original renamed name
+    let mut deserialization_aliases = Vec::new();
+    if deserialization_key != renamed {
+        deserialization_aliases.push(renamed.clone());
+    }
+    // Also accept the raw Rust field name if it differs from the deser key
+    if raw_name != deserialization_key && !deserialization_aliases.contains(&raw_name) {
+        deserialization_aliases.push(raw_name.clone());
+    }
 
     // Detect if the type is Option<T>
     let is_option = is_option_type(&field.ty);
@@ -234,6 +262,8 @@ fn convert_field(
         ident,
         ty: field.ty,
         serialized_name,
+        deserialization_key,
+        deserialization_aliases,
         is_option,
         is_collection,
         rules,

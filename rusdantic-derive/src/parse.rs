@@ -75,6 +75,18 @@ pub struct RusdanticField {
     #[darling(default)]
     pub nested: bool,
 
+    // --- Alias attributes ---
+    /// Field alias for deserialization: `#[rusdantic(alias = "userName")]`
+    /// Accepts both the Rust field name and the alias during deserialization.
+    #[darling(default)]
+    pub alias: Option<String>,
+    /// Alias used only for deserialization: `#[rusdantic(validation_alias = "user_name")]`
+    #[darling(default)]
+    pub validation_alias: Option<String>,
+    /// Alias used only for serialization: `#[rusdantic(serialization_alias = "userName")]`
+    #[darling(default)]
+    pub serialization_alias: Option<String>,
+
     // --- Sanitizer attributes ---
     /// Trim whitespace: `#[rusdantic(trim)]`
     #[darling(default)]
