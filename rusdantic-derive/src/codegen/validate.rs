@@ -20,7 +20,7 @@ pub fn generate_validate_impl(validated: &ValidatedStruct) -> TokenStream {
         .fields
         .iter()
         .filter(|f| f.computed_method.is_none()) // Skip computed fields
-        .map(|field| generate_field_validation(field))
+        .map(generate_field_validation)
         .collect();
 
     // Generate struct-level custom validation call (cross-field validation)

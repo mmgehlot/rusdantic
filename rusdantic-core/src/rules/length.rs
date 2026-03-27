@@ -21,13 +21,16 @@ pub fn validate_length<T: HasLength>(
     errors: &mut ValidationErrors,
 ) {
     let actual = value.rusdantic_length();
+    // Determine the unit for error messages based on the type.
+    // HasLength is implemented for String/&str (characters) and collections (items).
+    let unit = value.rusdantic_length_unit();
 
     if let Some(min_val) = min {
         if actual < min_val {
             errors.add(
                 ValidationError::new(
                     "length_min",
-                    format!("must be at least {} characters", min_val),
+                    format!("must be at least {} {}", min_val, unit),
                 )
                 .with_path(path.to_vec())
                 .with_param("min", serde_json::json!(min_val))
@@ -41,7 +44,7 @@ pub fn validate_length<T: HasLength>(
             errors.add(
                 ValidationError::new(
                     "length_max",
-                    format!("must be at most {} characters", max_val),
+                    format!("must be at most {} {}", max_val, unit),
                 )
                 .with_path(path.to_vec())
                 .with_param("max", serde_json::json!(max_val))

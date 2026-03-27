@@ -28,7 +28,7 @@ pub fn validate_range<T: PartialOrd + Display + Into<serde_json::Value> + Copy>(
                     format!("must be at least {}", min_val),
                 )
                 .with_path(path.to_vec())
-                .with_param("min", (*value).into())
+                .with_param("min", min_val.into())
                 .with_param("actual", (*value).into()),
             );
         }
@@ -42,7 +42,7 @@ pub fn validate_range<T: PartialOrd + Display + Into<serde_json::Value> + Copy>(
                     format!("must be at most {}", max_val),
                 )
                 .with_path(path.to_vec())
-                .with_param("max", (*value).into())
+                .with_param("max", max_val.into())
                 .with_param("actual", (*value).into()),
             );
         }
@@ -97,7 +97,7 @@ mod tests {
     #[test]
     fn test_f64_range() {
         let mut errors = ValidationErrors::new();
-        validate_range(&3.14f64, Some(0.0f64), Some(10.0f64), &path("ratio"), &mut errors);
+        validate_range(&3.15f64, Some(0.0f64), Some(10.0f64), &path("ratio"), &mut errors);
         assert!(errors.is_empty());
     }
 

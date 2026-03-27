@@ -20,7 +20,7 @@ pub fn generate_schema_impl(validated: &ValidatedStruct) -> TokenStream {
         .fields
         .iter()
         .filter(|f| f.computed_method.is_none()) // Skip computed for input schema
-        .map(|f| generate_property_schema(f))
+        .map(generate_property_schema)
         .collect();
 
     // Collect required field names (non-Option fields without a default)

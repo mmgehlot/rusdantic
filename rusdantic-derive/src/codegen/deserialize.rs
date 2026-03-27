@@ -167,7 +167,7 @@ pub fn generate_deserialize_impl(validated: &ValidatedStruct) -> TokenStream {
     // Struct-level custom validation: build a temporary struct to pass to the
     // cross-field validator function. We clone field values since the validator
     // receives &Self.
-    let _struct_validation = validated.config.custom_validator.as_ref().map(|path| {
+    let struct_validation = validated.config.custom_validator.as_ref().map(|path| {
         let field_inits: Vec<TokenStream> = deser_fields
             .iter()
             .map(|f| {
@@ -290,6 +290,9 @@ pub fn generate_deserialize_impl(validated: &ValidatedStruct) -> TokenStream {
                         let mut __errors = ::rusdantic_core::ValidationErrors::new();
                         #(#validation_calls)*
 
+                        // Run struct-level cross-field validation if configured
+                        #struct_validation
+
                         // Return validation errors if any were found
                         if !__errors.is_empty() {
                             return Err(::serde::de::Error::custom(__errors));
@@ -365,14 +368,14 @@ fn generate_sanitizers(field: &ValidatedField) -> TokenStream {
                 if field.is_option {
                     quote! {
                         if let Some(ref mut v) = #field_ident {
-                            if v.len() > #max {
+                            if v.chars().count() > #max {
                                 *v = v.chars().take(#max).collect();
                             }
                         }
                     }
                 } else {
                     quote! {
-                        let #field_ident = if #field_ident.len() > #max {
+                        let #field_ident = if #field_ident.chars().count() > #max {
                             #field_ident.chars().take(#max).collect()
                         } else {
                             #field_ident

@@ -32,7 +32,7 @@ use std::fmt;
 ///
 /// assert_eq!(error.path_string(), "user.email");
 /// ```
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ValidationError {
     /// Path to the invalid field.
     ///
@@ -127,7 +127,7 @@ impl std::error::Error for ValidationError {}
 ///
 /// Supports both field names (for struct fields and map keys) and
 /// numeric indices (for arrays/vectors).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 #[serde(untagged)]
 pub enum PathSegment {
     /// A named field in a struct or map key.

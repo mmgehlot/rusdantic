@@ -32,18 +32,31 @@ pub trait HasLength {
     /// Return the length of this value (character count for strings,
     /// element count for collections).
     fn rusdantic_length(&self) -> usize;
+
+    /// Return the unit name for error messages ("characters" for strings,
+    /// "items" for collections).
+    fn rusdantic_length_unit(&self) -> &'static str {
+        "items"
+    }
 }
 
 impl HasLength for String {
     fn rusdantic_length(&self) -> usize {
-        // Use char count, not byte length, for Unicode correctness
         self.chars().count()
+    }
+
+    fn rusdantic_length_unit(&self) -> &'static str {
+        "characters"
     }
 }
 
 impl HasLength for &str {
     fn rusdantic_length(&self) -> usize {
         self.chars().count()
+    }
+
+    fn rusdantic_length_unit(&self) -> &'static str {
+        "characters"
     }
 }
 

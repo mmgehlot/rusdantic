@@ -22,6 +22,7 @@ pub struct ValidatedStruct {
 
 /// Struct-level configuration extracted from `#[rusdantic(...)]` attributes.
 #[derive(Debug)]
+#[allow(dead_code)] // Some fields are reserved for future codegen phases
 pub struct StructConfig {
     /// Optional struct-level custom validation function that receives `&Self`
     pub custom_validator: Option<Path>,
@@ -126,22 +127,18 @@ fn to_pascal_case(s: &str) -> String {
 }
 
 /// Coercion mode for type conversion during deserialization.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CoerceMode {
     /// Exact type matching only (default). Rejects `"123"` for an integer field.
+    #[default]
     Strict,
     /// Lax coercion: allows string-to-number, string-to-bool, etc.
     Lax,
 }
 
-impl Default for CoerceMode {
-    fn default() -> Self {
-        Self::Strict
-    }
-}
-
 /// A single struct field with its validation rules and metadata.
 #[derive(Debug)]
+#[allow(dead_code)] // Some fields are reserved for future codegen phases
 pub struct ValidatedField {
     /// Field identifier (e.g., `username`)
     pub ident: Ident,
