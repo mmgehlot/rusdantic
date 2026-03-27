@@ -10,6 +10,7 @@
 #![warn(missing_docs)]
 
 pub mod coerce;
+pub mod dump;
 pub mod error;
 pub mod rules;
 pub mod traits;
