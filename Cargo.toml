@@ -5,6 +5,7 @@ members = [
     "rusdantic-core",
     "rusdantic-derive",
     "rusdantic-types",
+    "rusdantic-settings",
 ]
 
 [workspace.package]

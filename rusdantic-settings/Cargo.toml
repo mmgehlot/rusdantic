@@ -1,0 +1,21 @@
+[package]
+name = "rusdantic-settings"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Settings management for Rusdantic: load config from env vars, .env files, TOML, and CLI"
+readme = "../README.md"
+keywords = ["settings", "config", "env", "dotenv"]
+categories = ["config"]
+include = ["src/**/*", "../LICENSE-*", "../README.md"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]

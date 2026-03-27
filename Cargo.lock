@@ -818,6 +818,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rusdantic-settings"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "rusdantic-types"
 version = "0.1.0"
 dependencies = [
