@@ -207,3 +207,48 @@ fn test_strict_accepts_correct_type() {
     let result: StrictByDefault = rusdantic::from_json(json).unwrap();
     assert_eq!(result.count, 42);
 }
+
+// =============================================================================
+// Option<T> + coercion
+// =============================================================================
+
+#[derive(Rusdantic, Debug)]
+#[rusdantic(coerce_mode = "lax")]
+struct OptionalCoerce {
+    #[rusdantic(range(min = 0))]
+    score: Option<i32>,
+
+    name: Option<String>,
+}
+
+#[test]
+fn test_option_coerce_string_to_int() {
+    let json = r#"{"score": "42", "name": "alice"}"#;
+    let result: OptionalCoerce = rusdantic::from_json(json).unwrap();
+    assert_eq!(result.score, Some(42));
+    assert_eq!(result.name.as_deref(), Some("alice"));
+}
+
+#[test]
+fn test_option_coerce_null_is_none() {
+    let json = r#"{"score": null, "name": null}"#;
+    let result: OptionalCoerce = rusdantic::from_json(json).unwrap();
+    assert_eq!(result.score, None);
+    assert_eq!(result.name, None);
+}
+
+#[test]
+fn test_option_coerce_missing_is_none() {
+    let json = r#"{}"#;
+    let result: OptionalCoerce = rusdantic::from_json(json).unwrap();
+    assert_eq!(result.score, None);
+    assert_eq!(result.name, None);
+}
+
+#[test]
+fn test_option_coerce_with_validation() {
+    let json = r#"{"score": "-5"}"#;
+    let result: Result<OptionalCoerce, _> = rusdantic::from_json(json);
+    // "−5" coerces to -5, which fails range(min=0) validation
+    assert!(result.is_err());
+}

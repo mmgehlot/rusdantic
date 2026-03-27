@@ -711,71 +711,80 @@ fn generate_deser_rule_check(rule: &ValidationRule, field: &ValidatedField) -> T
 }
 
 /// Generate a coercing `next_value` call for a field based on its type.
-/// This detects the field type and uses the appropriate coercion function
-/// from `rusdantic_core::coerce`.
+///
+/// For `Option<T>` fields: reads a `serde_json::Value` first, checks for null
+/// (returning `None`), then coerces the non-null value and wraps in `Some`.
+/// This returns `Option<T>` so the caller's `Some(result)` produces `Option<Option<T>>`.
+///
+/// For non-Option fields: reads and coerces directly, returning `T`.
 fn generate_coercing_next_value(field: &ValidatedField) -> TokenStream {
     let ty = &field.ty;
-    let type_name = extract_inner_type_name(ty);
+    let inner_type_name = extract_inner_type_name(ty);
+    let inner_ty = extract_inner_rust_type(ty);
 
-    match type_name.as_str() {
-        // Integer types: use coerce_int
+    // Generate the coercion expression that converts a serde_json::Value → T
+    let coerce_expr = match inner_type_name.as_str() {
         "i8" | "i16" | "i32" | "i64" | "i128" | "isize" | "u8" | "u16" | "u32" | "u64"
         | "u128" | "usize" => {
-            // For Option<T>, we need to extract the inner type for coercion
-            let inner_ty = extract_inner_rust_type(ty);
             quote! {
                 {
-                    // Type coercion: accept strings, floats, bools as integer
-                    let __raw = __map.next_value::<::serde_json::Value>()?;
                     let __coerced: #inner_ty = ::rusdantic_core::coerce::deserialize_coerce_int(
                         ::serde::de::IntoDeserializer::into_deserializer(__raw)
-                    )
-                    .map_err(::serde::de::Error::custom)?;
+                    ).map_err(::serde::de::Error::custom)?;
                     __coerced
                 }
             }
         }
-        // Float types: use coerce_float
         "f32" | "f64" => {
-            let inner_ty = extract_inner_rust_type(ty);
             quote! {
                 {
-                    let __raw = __map.next_value::<::serde_json::Value>()?;
                     let __coerced: #inner_ty = ::rusdantic_core::coerce::deserialize_coerce_float(
                         ::serde::de::IntoDeserializer::into_deserializer(__raw)
-                    )
-                    .map_err(::serde::de::Error::custom)?;
+                    ).map_err(::serde::de::Error::custom)?;
                     __coerced
                 }
             }
         }
-        // Bool: use coerce_bool
         "bool" => {
             quote! {
-                {
-                    let __raw = __map.next_value::<::serde_json::Value>()?;
-                    ::rusdantic_core::coerce::deserialize_coerce_bool(
-                        ::serde::de::IntoDeserializer::into_deserializer(__raw)
-                    )
-                    .map_err(::serde::de::Error::custom)?
-                }
+                ::rusdantic_core::coerce::deserialize_coerce_bool(
+                    ::serde::de::IntoDeserializer::into_deserializer(__raw)
+                ).map_err(::serde::de::Error::custom)?
             }
         }
-        // String: use coerce_string
         "String" => {
             quote! {
-                {
-                    let __raw = __map.next_value::<::serde_json::Value>()?;
-                    ::rusdantic_core::coerce::deserialize_coerce_string(
-                        ::serde::de::IntoDeserializer::into_deserializer(__raw)
-                    )
-                    .map_err(::serde::de::Error::custom)?
+                ::rusdantic_core::coerce::deserialize_coerce_string(
+                    ::serde::de::IntoDeserializer::into_deserializer(__raw)
+                ).map_err(::serde::de::Error::custom)?
+            }
+        }
+        // Unknown types: fall back to standard deserialization
+        _ => {
+            return quote! { __map.next_value()? };
+        }
+    };
+
+    if field.is_option {
+        // For Option<T>: read raw value, handle null, coerce non-null.
+        // Returns Option<T> so caller's Some(result) gives Option<Option<T>>.
+        quote! {
+            {
+                let __raw = __map.next_value::<::serde_json::Value>()?;
+                if __raw.is_null() {
+                    None
+                } else {
+                    Some(#coerce_expr)
                 }
             }
         }
-        // For other types, fall back to standard deserialization
-        _ => {
-            quote! { __map.next_value()? }
+    } else {
+        // For non-Option<T>: read raw value and coerce. Returns T.
+        quote! {
+            {
+                let __raw = __map.next_value::<::serde_json::Value>()?;
+                #coerce_expr
+            }
         }
     }
 }

@@ -78,6 +78,12 @@ impl PartialEq for SecretStr {
 
 impl Eq for SecretStr {}
 
+impl std::hash::Hash for SecretStr {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
+
 impl Serialize for SecretStr {
     /// Serialization skips the secret value entirely, emitting null.
     ///
@@ -152,6 +158,12 @@ impl PartialEq for SecretBytes {
 
 impl Eq for SecretBytes {}
 
+impl std::hash::Hash for SecretBytes {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
+
 impl Serialize for SecretBytes {
     /// Serializes as null to prevent accidental secret leakage.
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
@@ -202,13 +214,11 @@ impl<T> fmt::Display for Secret<T> {
     }
 }
 
-impl<T: PartialEq> PartialEq for Secret<T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-
-impl<T: Eq> Eq for Secret<T> {}
+// NOTE: Secret<T> intentionally does NOT implement PartialEq.
+// Standard PartialEq would use non-constant-time comparison, creating
+// a timing side-channel. For secret comparison, use expose_secret()
+// and compare manually with constant-time logic, or use SecretStr/SecretBytes
+// which have constant-time PartialEq.
 
 impl<T: Serialize> Serialize for Secret<T> {
     /// Serializes as null to prevent accidental secret leakage.
