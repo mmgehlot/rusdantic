@@ -17,12 +17,12 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-use crate::model::{CoerceMode, Sanitizer, ValidatedField, ValidatedStruct, ValidationRule};
+use crate::model::{Sanitizer, ValidatedField, ValidatedStruct, ValidationRule};
 
 /// Generate the complete `impl Deserialize for T` block.
 pub fn generate_deserialize_impl(validated: &ValidatedStruct) -> TokenStream {
     let name = &validated.ident;
-    let (impl_generics, ty_generics, where_clause) = validated.generics.split_for_impl();
+    let (_impl_generics, _ty_generics, _where_clause) = validated.generics.split_for_impl();
     let name_str = name.to_string();
 
     // Collect non-computed fields (computed fields are not deserialized)
@@ -167,7 +167,7 @@ pub fn generate_deserialize_impl(validated: &ValidatedStruct) -> TokenStream {
     // Struct-level custom validation: build a temporary struct to pass to the
     // cross-field validator function. We clone field values since the validator
     // receives &Self.
-    let struct_validation = validated.config.custom_validator.as_ref().map(|path| {
+    let _struct_validation = validated.config.custom_validator.as_ref().map(|path| {
         let field_inits: Vec<TokenStream> = deser_fields
             .iter()
             .map(|f| {

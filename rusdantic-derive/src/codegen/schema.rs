@@ -203,7 +203,7 @@ fn rule_to_schema_constraint(rule: &ValidationRule, field: &ValidatedField) -> O
 
             Some(quote! { #min_entry #max_entry })
         }
-        ValidationRule::Range { min, max } => {
+        ValidationRule::Range { min, max: _ } => {
             let min_entry = min.as_ref().map(|_v| {
                 // We can't evaluate the expression at compile time in schema generation,
                 // so we emit code that evaluates it at runtime
