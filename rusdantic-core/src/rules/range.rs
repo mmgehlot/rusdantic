@@ -13,7 +13,12 @@ use std::fmt::Display;
 ///
 /// Works with all Rust numeric types: i8, i16, i32, i64, i128, u8, u16, u32,
 /// u64, u128, f32, f64, isize, usize.
-pub fn validate_range<T: PartialOrd + Display + Into<serde_json::Value> + Copy>(
+/// Validate that the value is within the specified numeric range.
+///
+/// Works with all Rust numeric types including i128/u128.
+/// Uses `Display` for error message formatting instead of `Into<serde_json::Value>`
+/// to avoid trait bound issues with 128-bit integers.
+pub fn validate_range<T: PartialOrd + Display + Copy>(
     value: &T,
     min: Option<T>,
     max: Option<T>,
@@ -38,8 +43,8 @@ pub fn validate_range<T: PartialOrd + Display + Into<serde_json::Value> + Copy>(
                     format!("must be at least {}", min_val),
                 )
                 .with_path(path.to_vec())
-                .with_param("min", min_val.into())
-                .with_param("actual", (*value).into()),
+                .with_param("min", serde_json::Value::String(min_val.to_string()))
+                .with_param("actual", serde_json::Value::String(value.to_string())),
             );
         }
     }
@@ -52,8 +57,8 @@ pub fn validate_range<T: PartialOrd + Display + Into<serde_json::Value> + Copy>(
                     format!("must be at most {}", max_val),
                 )
                 .with_path(path.to_vec())
-                .with_param("max", max_val.into())
-                .with_param("actual", (*value).into()),
+                .with_param("max", serde_json::Value::String(max_val.to_string()))
+                .with_param("actual", serde_json::Value::String(value.to_string())),
             );
         }
     }

@@ -163,8 +163,18 @@ pub trait Settings: DeserializeOwned + Sized {
                 let key = key.trim();
                 let value = value.trim().trim_matches('"').trim_matches('\'');
 
-                if key.starts_with(prefix) {
-                    let field_name = key[prefix.len()..].to_lowercase();
+                let case_sensitive = Self::case_sensitive();
+                let key_matches = if case_sensitive {
+                    key.starts_with(prefix)
+                } else {
+                    key.to_uppercase().starts_with(&prefix.to_uppercase())
+                };
+                if key_matches && !prefix.is_empty() {
+                    let field_name = if case_sensitive {
+                        key[prefix.len()..].to_string()
+                    } else {
+                        key[prefix.len()..].to_lowercase()
+                    };
                     map.insert(field_name, value.to_string());
                 } else if prefix.is_empty() {
                     map.insert(key.to_lowercase(), value.to_string());

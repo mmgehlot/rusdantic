@@ -6,6 +6,21 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+/// Constant-time byte comparison to prevent timing side-channel attacks.
+/// Always compares all bytes regardless of where the first difference occurs.
+/// Returns `false` immediately only if lengths differ (length is not secret).
+#[inline]
+fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut diff = 0u8;
+    for (x, y) in a.iter().zip(b.iter()) {
+        diff |= x ^ y;
+    }
+    diff == 0
+}
+
 /// A secret string value that is redacted in Debug and Display output.
 ///
 /// The inner value is accessible via `expose_secret()` but never appears
@@ -52,8 +67,12 @@ impl fmt::Display for SecretStr {
 }
 
 impl PartialEq for SecretStr {
+    /// Constant-time comparison to prevent timing side-channel attacks.
+    /// This is critical because SecretStr holds sensitive values (API keys,
+    /// passwords, tokens) and standard string comparison short-circuits
+    /// on the first differing byte.
     fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
+        constant_time_eq(self.0.as_bytes(), other.0.as_bytes())
     }
 }
 
@@ -125,8 +144,9 @@ impl fmt::Display for SecretBytes {
 }
 
 impl PartialEq for SecretBytes {
+    /// Constant-time comparison to prevent timing side-channel attacks.
     fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
+        constant_time_eq(&self.0, &other.0)
     }
 }
 

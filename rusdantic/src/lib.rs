@@ -72,6 +72,7 @@ pub use rusdantic_core::{PathSegment, Validate, ValidationError, ValidationError
 /// deserialization errors (malformed JSON) or validation errors
 /// (valid JSON but invalid data).
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum RusdanticError {
     /// A serde deserialization error (malformed input, wrong types, missing fields).
     Deserialization(serde_json::Error),

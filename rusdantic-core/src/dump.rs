@@ -37,6 +37,9 @@ pub struct DumpOptions {
     // Planned: exclude_defaults, by_alias, exclude_unset
     /// Indentation for JSON output (None = compact).
     pub indent: Option<usize>,
+    /// If true, apply include/exclude/exclude_none recursively to nested objects.
+    /// Default: false (only filter top-level fields, matching Pydantic behavior).
+    pub recursive: bool,
 }
 
 impl DumpOptions {
@@ -70,14 +73,52 @@ impl DumpOptions {
         self
     }
 
-    /// Apply options to a serialized JSON Value, filtering fields recursively.
+    /// Apply options to a serialized JSON Value, filtering fields.
     ///
-    /// This is the core filtering logic. It takes a fully serialized
-    /// `serde_json::Value` (typically an Object) and removes/renames
-    /// fields based on the configured options. Filtering is applied
-    /// recursively to nested objects to ensure consistent behavior.
+    /// By default, only top-level fields are filtered (matching Pydantic behavior).
+    /// Set `recursive(true)` to also filter nested objects.
     pub fn filter_value(&self, value: &mut Value) {
-        self.filter_value_recursive(value, 0);
+        if self.recursive {
+            self.filter_value_recursive(value, 0);
+        } else {
+            self.filter_value_top_level(value);
+        }
+    }
+
+    /// Filter only top-level fields (default behavior).
+    fn filter_value_top_level(&self, value: &mut Value) {
+        if let Value::Object(ref mut map) = value {
+            let keys_to_remove: Vec<String> = map
+                .keys()
+                .filter(|key| {
+                    if !self.include_fields.is_empty() && !self.include_fields.contains(*key) {
+                        return true;
+                    }
+                    if self.exclude_fields.contains(*key) {
+                        return true;
+                    }
+                    if self.exclude_none {
+                        if let Some(val) = map.get(*key) {
+                            if val.is_null() {
+                                return true;
+                            }
+                        }
+                    }
+                    false
+                })
+                .cloned()
+                .collect();
+
+            for key in keys_to_remove {
+                map.remove(&key);
+            }
+        }
+    }
+
+    /// Set whether filtering applies recursively to nested objects.
+    pub fn recursive(mut self, yes: bool) -> Self {
+        self.recursive = yes;
+        self
     }
 
     /// Internal recursive filter with depth limit to prevent stack overflow.
