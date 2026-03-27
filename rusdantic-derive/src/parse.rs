@@ -98,6 +98,10 @@ pub struct RusdanticField {
     /// Recursively validate nested struct: `#[rusdantic(nested)]`
     #[darling(default)]
     pub nested: bool,
+    /// Context-aware custom validator: `#[rusdantic(custom_with_context(function = my_fn))]`
+    /// The function signature is: fn(value: &T, ctx: &C) -> Result<(), ValidationError>
+    #[darling(default)]
+    pub custom_with_context: Option<CustomValidator>,
 
     // --- Alias attributes ---
     /// Field alias for deserialization: `#[rusdantic(alias = "userName")]`
@@ -184,11 +188,18 @@ pub struct ContainsValidator {
     pub value: String,
 }
 
-/// Custom validation function reference.
+/// Custom validation function reference with optional mode.
+///
+/// - `after` (default): receives typed value after deserialization
+/// - `before`: receives raw serde_json::Value before type conversion
+/// - `wrap`: receives value + handler for wrapping validation
 #[derive(Debug, FromMeta)]
 pub struct CustomValidator {
     /// Path to the validation function.
     pub function: Path,
+    /// Validator mode: "after" (default), "before", or "wrap".
+    #[darling(default)]
+    pub mode: Option<String>,
 }
 
 /// Custom sanitizer function reference.

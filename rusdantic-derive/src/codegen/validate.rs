@@ -304,7 +304,7 @@ fn generate_rule_check(
             }
         }
 
-        ValidationRule::Custom(path) => {
+        ValidationRule::Custom(path, _mode) => {
             let serialized_name = &field.serialized_name;
             quote_spanned! { span =>
                 if let Err(mut custom_err) = #path(__rusdantic_value) {
@@ -318,6 +318,9 @@ fn generate_rule_check(
 
         // Nested validation is handled at the field level, not per-rule
         ValidationRule::Nested => TokenStream::new(),
+
+        // Context-aware validators only run via validate_with_context()
+        ValidationRule::CustomWithContext(_) => TokenStream::new(),
     }
 }
 

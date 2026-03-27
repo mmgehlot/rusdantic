@@ -236,7 +236,8 @@ fn rule_to_schema_constraint(rule: &ValidationRule, field: &ValidatedField) -> O
         // These rules don't have direct JSON Schema equivalents
         ValidationRule::Contains(_)
         | ValidationRule::Required
-        | ValidationRule::Custom(_)
+        | ValidationRule::Custom(_, _)
+        | ValidationRule::CustomWithContext(_)
         | ValidationRule::Nested => None,
     }
 }

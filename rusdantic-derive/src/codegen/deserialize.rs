@@ -695,7 +695,7 @@ fn generate_deser_rule_check(rule: &ValidationRule, field: &ValidatedField) -> T
                 );
             }
         }
-        ValidationRule::Custom(path) => {
+        ValidationRule::Custom(path, _mode) => {
             let serialized_name = &field.serialized_name;
             quote! {
                 if let Err(mut custom_err) = #path(__rusdantic_value) {
@@ -705,6 +705,10 @@ fn generate_deser_rule_check(rule: &ValidationRule, field: &ValidatedField) -> T
                     __errors.add(custom_err);
                 }
             }
+        }
+        ValidationRule::CustomWithContext(_) => {
+            // Context-aware validators only run via validate_with_context()
+            TokenStream::new()
         }
         // Required and Nested are handled separately
         ValidationRule::Required | ValidationRule::Nested => TokenStream::new(),

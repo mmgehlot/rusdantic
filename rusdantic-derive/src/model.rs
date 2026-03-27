@@ -200,8 +200,10 @@ pub enum ValidationRule {
     Contains(String),
     /// Option<T> must be Some (not None).
     Required,
-    /// Custom validation function path.
-    Custom(Path),
+    /// Custom validation function path with mode.
+    Custom(Path, ValidatorMode),
+    /// Context-aware custom validation function.
+    CustomWithContext(Path),
     /// Recursively validate a nested struct.
     Nested,
 }
@@ -219,6 +221,35 @@ pub enum Sanitizer {
     Truncate(usize),
     /// Custom sanitizer function
     Custom(Path),
+}
+
+/// Validator execution mode.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ValidatorMode {
+    /// Run after deserialization/coercion (default). Receives typed value.
+    After,
+    /// Run before deserialization. Receives raw serde_json::Value.
+    Before,
+    /// Wrap the validation pipeline with a handler.
+    Wrap,
+}
+
+impl Default for ValidatorMode {
+    fn default() -> Self {
+        Self::After
+    }
+}
+
+impl ValidatorMode {
+    /// Parse a mode string into the enum.
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "after" => Some(Self::After),
+            "before" => Some(Self::Before),
+            "wrap" => Some(Self::Wrap),
+            _ => None,
+        }
+    }
 }
 
 /// PII redaction mode for Debug/Display output.

@@ -22,7 +22,7 @@ use syn::DeriveInput;
 use crate::diagnostics;
 use crate::model::{
     CoerceMode, RedactMode, RenameAll, Sanitizer, StructConfig, ValidatedField, ValidatedStruct,
-    ValidationRule,
+    ValidatorMode, ValidationRule,
 };
 use crate::parse::{RedactConfig, RusdanticField, RusdanticInput};
 
@@ -452,7 +452,15 @@ fn convert_field(
         rules.push(ValidationRule::Required);
     }
     if let Some(custom) = field.custom {
-        rules.push(ValidationRule::Custom(custom.function));
+        let mode = custom
+            .mode
+            .as_deref()
+            .and_then(ValidatorMode::from_str)
+            .unwrap_or_default();
+        rules.push(ValidationRule::Custom(custom.function, mode));
+    }
+    if let Some(ctx_custom) = field.custom_with_context {
+        rules.push(ValidationRule::CustomWithContext(ctx_custom.function));
     }
     if field.nested {
         rules.push(ValidationRule::Nested);
