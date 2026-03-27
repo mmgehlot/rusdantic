@@ -1,0 +1,25 @@
+[package]
+name = "rusdantic-types"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Extended type library for Rusdantic: constrained numerics, network types, secrets, paths, dates, UUIDs"
+readme = "../README.md"
+keywords = ["validation", "types", "constrained", "pydantic"]
+categories = ["development-tools"]
+include = ["src/**/*", "../LICENSE-*", "../README.md"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+rusdantic-core = { path = "../rusdantic-core", version = "0.1.0" }
+regex = { workspace = true }
+url = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }

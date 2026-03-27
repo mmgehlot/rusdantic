@@ -1,0 +1,4 @@
+# Rusdantic formatting configuration
+# Uses stable rustfmt defaults with minor adjustments
+max_width = 100
+use_field_init_shorthand = true
