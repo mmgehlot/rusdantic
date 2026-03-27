@@ -1,0 +1,28 @@
+[package]
+name = "rusdantic-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Core validation traits, error types, and built-in rules for Rusdantic"
+readme = "../README.md"
+keywords = ["validation", "serde", "pydantic"]
+categories = ["development-tools"]
+include = ["src/**/*", "../LICENSE-*", "../README.md"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+regex = { workspace = true }
+url = { workspace = true, optional = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
+
+[features]
+default = ["url-validation"]
+url-validation = ["dep:url"]

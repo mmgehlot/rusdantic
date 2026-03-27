@@ -1,0 +1,34 @@
+[package]
+name = "rusdantic"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "A high-ergonomics data validation and serialization framework for Rust, inspired by Python's Pydantic"
+readme = "../README.md"
+keywords = ["validation", "serde", "derive", "pydantic", "schema"]
+categories = ["development-tools", "encoding"]
+include = ["src/**/*", "../LICENSE-*", "../README.md"]
+
+[dependencies]
+rusdantic-core = { path = "../rusdantic-core", version = "0.1.0" }
+rusdantic-derive = { path = "../rusdantic-derive", version = "0.1.0" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+trybuild = { workspace = true }
+proptest = { workspace = true }
+criterion = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+
+[features]
+default = ["url-validation"]
+url-validation = ["rusdantic-core/url-validation"]
+
+[[bench]]
+name = "validate"
+harness = false
