@@ -20,6 +20,16 @@ pub fn validate_range<T: PartialOrd + Display + Into<serde_json::Value> + Copy>(
     path: &[PathSegment],
     errors: &mut ValidationErrors,
 ) {
+    // Check for NaN: PartialOrd where value != value indicates NaN.
+    // NaN silently passes range checks because all comparisons return false.
+    if value.partial_cmp(value).is_none() {
+        errors.add(
+            ValidationError::new("range_nan", "value is NaN (not a number)")
+                .with_path(path.to_vec()),
+        );
+        return;
+    }
+
     if let Some(min_val) = min {
         if *value < min_val {
             errors.add(

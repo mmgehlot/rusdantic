@@ -70,12 +70,24 @@ impl DumpOptions {
         self
     }
 
-    /// Apply options to a serialized JSON Value, filtering fields.
+    /// Apply options to a serialized JSON Value, filtering fields recursively.
     ///
     /// This is the core filtering logic. It takes a fully serialized
     /// `serde_json::Value` (typically an Object) and removes/renames
-    /// fields based on the configured options.
+    /// fields based on the configured options. Filtering is applied
+    /// recursively to nested objects to ensure consistent behavior.
     pub fn filter_value(&self, value: &mut Value) {
+        self.filter_value_recursive(value, 0);
+    }
+
+    /// Internal recursive filter with depth limit to prevent stack overflow.
+    fn filter_value_recursive(&self, value: &mut Value, depth: usize) {
+        // Depth limit to prevent stack overflow on pathological inputs
+        const MAX_DEPTH: usize = 128;
+        if depth > MAX_DEPTH {
+            return;
+        }
+
         if let Value::Object(ref mut map) = value {
             // Collect keys to remove
             let keys_to_remove: Vec<String> = map
@@ -104,6 +116,16 @@ impl DumpOptions {
 
             for key in keys_to_remove {
                 map.remove(&key);
+            }
+
+            // Recursively filter nested objects and arrays
+            for (_, v) in map.iter_mut() {
+                self.filter_value_recursive(v, depth + 1);
+            }
+        } else if let Value::Array(ref mut arr) = value {
+            // Apply filtering to objects within arrays
+            for item in arr.iter_mut() {
+                self.filter_value_recursive(item, depth + 1);
             }
         }
     }

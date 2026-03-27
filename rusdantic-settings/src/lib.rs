@@ -119,9 +119,16 @@ pub trait Settings: DeserializeOwned + Sized {
             }
         }
 
-        // Convert the map to a JSON value and deserialize
-        let json_value = serde_json::to_value(&map)
-            .map_err(|e| SettingsError::EnvError(e.to_string()))?;
+        // Convert the map to a JSON Value with type coercion.
+        // Environment variables are always strings, but target struct fields
+        // may be numeric or boolean. We attempt to parse values as numbers/bools
+        // and emit native JSON types for correct serde deserialization.
+        let mut json_map = serde_json::Map::new();
+        for (key, value) in &map {
+            let json_val = coerce_env_value(value);
+            json_map.insert(key.clone(), json_val);
+        }
+        let json_value = serde_json::Value::Object(json_map);
         serde_json::from_value(json_value).map_err(SettingsError::JsonError)
     }
 
@@ -165,10 +172,39 @@ pub trait Settings: DeserializeOwned + Sized {
             }
         }
 
-        let json_value = serde_json::to_value(&map)
-            .map_err(|e| SettingsError::EnvError(e.to_string()))?;
+        let mut json_map = serde_json::Map::new();
+        for (key, value) in &map {
+            json_map.insert(key.clone(), coerce_env_value(value));
+        }
+        let json_value = serde_json::Value::Object(json_map);
         serde_json::from_value(json_value).map_err(SettingsError::JsonError)
     }
+}
+
+/// Attempt to coerce a string environment variable value to its native JSON type.
+///
+/// Tries to parse as: bool ("true"/"false") → integer → float → string.
+/// This allows settings structs to have `port: u16` fields that load correctly
+/// from environment variables like `PORT=8080`.
+fn coerce_env_value(value: &str) -> serde_json::Value {
+    // Try bool
+    match value.to_lowercase().as_str() {
+        "true" => return serde_json::Value::Bool(true),
+        "false" => return serde_json::Value::Bool(false),
+        _ => {}
+    }
+    // Try integer
+    if let Ok(i) = value.parse::<i64>() {
+        return serde_json::Value::Number(serde_json::Number::from(i));
+    }
+    // Try float
+    if let Ok(f) = value.parse::<f64>() {
+        if let Some(n) = serde_json::Number::from_f64(f) {
+            return serde_json::Value::Number(n);
+        }
+    }
+    // Default: string
+    serde_json::Value::String(value.to_string())
 }
 
 #[cfg(test)]
@@ -179,7 +215,7 @@ mod tests {
     #[derive(Deserialize, Debug, PartialEq)]
     struct TestConfig {
         host: String,
-        port: String,
+        port: u16, // Now correctly typed — env coercion handles "8080" → 8080
     }
 
     impl Settings for TestConfig {
@@ -196,7 +232,7 @@ mod tests {
 
         let config = TestConfig::from_env().unwrap();
         assert_eq!(config.host, "localhost");
-        assert_eq!(config.port, "8080");
+        assert_eq!(config.port, 8080);
 
         // Cleanup
         std::env::remove_var("TEST_HOST");
@@ -205,10 +241,10 @@ mod tests {
 
     #[test]
     fn test_from_json_str() {
-        let json = r#"{"host": "localhost", "port": "8080"}"#;
+        let json = r#"{"host": "localhost", "port": 8080}"#;
         let config = TestConfig::from_json_str(json).unwrap();
         assert_eq!(config.host, "localhost");
-        assert_eq!(config.port, "8080");
+        assert_eq!(config.port, 8080);
     }
 
     #[test]
@@ -227,7 +263,7 @@ mod tests {
 
         let config = TestConfig::from_dotenv(path.to_str().unwrap()).unwrap();
         assert_eq!(config.host, "myhost");
-        assert_eq!(config.port, "9090");
+        assert_eq!(config.port, 9090);
 
         std::fs::remove_file(&path).ok();
     }
@@ -235,7 +271,7 @@ mod tests {
     #[derive(Deserialize, Debug)]
     struct NoPrefix {
         name: String,
-        value: String,
+        value: i32, // Numeric env value correctly coerced from string
     }
 
     impl Settings for NoPrefix {
@@ -257,7 +293,7 @@ mod tests {
 
         let config = NoPrefix::from_dotenv(path.to_str().unwrap()).unwrap();
         assert_eq!(config.name, "test");
-        assert_eq!(config.value, "42");
+        assert_eq!(config.value, 42);
 
         std::fs::remove_file(&path).ok();
     }

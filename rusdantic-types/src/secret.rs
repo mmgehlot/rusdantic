@@ -5,7 +5,6 @@
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use std::ops::Deref;
 
 /// A secret string value that is redacted in Debug and Display output.
 ///
@@ -134,8 +133,9 @@ impl PartialEq for SecretBytes {
 impl Eq for SecretBytes {}
 
 impl Serialize for SecretBytes {
+    /// Serializes as null to prevent accidental secret leakage.
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        "**********".serialize(serializer)
+        serializer.serialize_none()
     }
 }
 
@@ -191,8 +191,9 @@ impl<T: PartialEq> PartialEq for Secret<T> {
 impl<T: Eq> Eq for Secret<T> {}
 
 impl<T: Serialize> Serialize for Secret<T> {
+    /// Serializes as null to prevent accidental secret leakage.
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        "**********".serialize(serializer)
+        serializer.serialize_none()
     }
 }
 
