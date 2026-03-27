@@ -5,21 +5,21 @@
 //! for structural parsing while retaining full control over the rule syntax.
 
 use darling::ast::Data;
-use darling::{FromDeriveInput, FromField, FromMeta};
+use darling::{FromDeriveInput, FromField, FromMeta, FromVariant};
 use syn::{Expr, Ident, Path, Type};
 
 /// Top-level parsed representation of a struct with `#[derive(Rusdantic)]`.
 /// Darling automatically extracts the struct name, generics, visibility,
 /// and iterates over fields to parse their attributes.
 #[derive(Debug, FromDeriveInput)]
-#[darling(attributes(rusdantic), supports(struct_named))]
+#[darling(attributes(rusdantic), supports(struct_named, enum_any))]
 pub struct RusdanticInput {
     /// The struct identifier (e.g., `User`)
     pub ident: Ident,
     /// Generic parameters on the struct
     pub generics: syn::Generics,
-    /// Parsed fields with their rusdantic attributes
-    pub data: Data<(), RusdanticField>,
+    /// Parsed fields (for structs) or variants (for enums)
+    pub data: Data<RusdanticVariant, RusdanticField>,
 
     // --- Struct-level attributes ---
     /// Optional struct-level custom validation function path
@@ -34,6 +34,30 @@ pub struct RusdanticInput {
     /// Lax coercion mode: if true, strings can be coerced to numbers, etc.
     #[darling(default)]
     pub coerce_mode: Option<String>,
+
+    // --- Enum-specific attributes ---
+    /// Internal tag field name: `#[rusdantic(tag = "type")]`
+    #[darling(default)]
+    pub tag: Option<String>,
+    /// Adjacent content field name: `#[rusdantic(content = "data")]`
+    #[darling(default)]
+    pub content: Option<String>,
+    /// Untagged enum: `#[rusdantic(untagged)]`
+    #[darling(default)]
+    pub untagged: bool,
+}
+
+/// Parsed representation of an enum variant.
+#[derive(Debug, FromVariant)]
+#[darling(attributes(rusdantic))]
+pub struct RusdanticVariant {
+    /// The variant identifier (e.g., `Circle`, `Rectangle`)
+    pub ident: Ident,
+    /// Fields in this variant (for struct/tuple variants)
+    pub fields: darling::ast::Fields<RusdanticField>,
+    /// Optional rename for this variant: `#[rusdantic(rename = "circle")]`
+    #[darling(default)]
+    pub rename: Option<String>,
 }
 
 /// Parsed representation of a single struct field with its rusdantic attributes.

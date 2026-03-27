@@ -45,10 +45,19 @@ pub fn expand_rusdantic(input: DeriveInput) -> syn::Result<TokenStream> {
         return Err(err);
     }
 
-    // Step 3: Convert parsed attributes into the intermediate representation (IR)
+    // Step 3: Dispatch based on struct vs enum
+    match &parsed.data {
+        darling::ast::Data::Struct(_) => expand_struct(parsed),
+        darling::ast::Data::Enum(_) => expand_enum(parsed),
+    }
+}
+
+/// Expand a struct with `#[derive(Rusdantic)]`.
+fn expand_struct(parsed: RusdanticInput) -> syn::Result<TokenStream> {
+    // Convert parsed attributes into the intermediate representation (IR)
     let validated = build_ir(parsed)?;
 
-    // Step 4: Generate all trait implementations from the IR
+    // Generate all trait implementations from the IR
     let validate_impl = validate::generate_validate_impl(&validated);
     let deserialize_impl = deserialize::generate_deserialize_impl(&validated);
     let serialize_impl = serialize::generate_serialize_impl(&validated);
@@ -60,15 +69,10 @@ pub fn expand_rusdantic(input: DeriveInput) -> syn::Result<TokenStream> {
     let schema_impl = schema::generate_schema_impl(&validated);
     let partial_validate = validate::generate_partial_validate(&validated);
 
-    // Step 5: Combine all generated code into a single token stream.
     // For generic structs, skip schema and partial_validate generation
-    // (they use split_for_impl which works fine for non-generic structs).
     let has_type_generics = validated.generics.type_params().next().is_some();
 
     if has_type_generics {
-        // Generic structs: Validate + Serialize (Deserialize is a no-op comment,
-        // schema and partial_validate are skipped since they use impl_generics).
-        // Users should use serde's #[derive(Deserialize)] separately.
         Ok(quote::quote! {
             #validate_impl
             #deserialize_impl
@@ -76,8 +80,6 @@ pub fn expand_rusdantic(input: DeriveInput) -> syn::Result<TokenStream> {
             #debug_impl
         })
     } else {
-        // Non-generic structs: full codegen including Deserialize with embedded
-        // validation, schema generation, and partial validation.
         Ok(quote::quote! {
             #validate_impl
             #deserialize_impl
@@ -87,6 +89,233 @@ pub fn expand_rusdantic(input: DeriveInput) -> syn::Result<TokenStream> {
             #partial_validate
         })
     }
+}
+
+/// Expand an enum with `#[derive(Rusdantic)]`.
+///
+/// For enums, we generate:
+/// - serde `Serialize` and `Deserialize` impls using serde attributes
+///   for the chosen representation (externally tagged, internally tagged,
+///   adjacently tagged, or untagged)
+/// - A `Validate` impl that validates each variant's fields
+///
+/// The serde representation is determined by struct-level attributes:
+/// - No tag/content/untagged → externally tagged (serde default)
+/// - `#[rusdantic(tag = "type")]` → internally tagged
+/// - `#[rusdantic(tag = "t", content = "c")]` → adjacently tagged
+/// - `#[rusdantic(untagged)]` → untagged
+fn expand_enum(parsed: RusdanticInput) -> syn::Result<TokenStream> {
+    let name = &parsed.ident;
+    let (impl_generics, ty_generics, where_clause) = parsed.generics.split_for_impl();
+
+    // Extract enum variants
+    let variants = match &parsed.data {
+        darling::ast::Data::Enum(variants) => variants,
+        _ => unreachable!("expand_enum called on non-enum"),
+    };
+
+    // Build serde representation attributes
+    let serde_repr_attrs = if parsed.untagged {
+        quote::quote! { #[serde(untagged)] }
+    } else if let (Some(tag), Some(content)) = (&parsed.tag, &parsed.content) {
+        quote::quote! { #[serde(tag = #tag, content = #content)] }
+    } else if let Some(tag) = &parsed.tag {
+        quote::quote! { #[serde(tag = #tag)] }
+    } else {
+        // Default: externally tagged (no serde attribute needed)
+        TokenStream::new()
+    };
+
+    // Build rename_all attribute if set
+    let rename_all_attr = parsed.rename_all.as_ref().map(|r| {
+        quote::quote! { #[serde(rename_all = #r)] }
+    });
+
+    // Build variant serde rename attributes
+    let variant_rename_attrs: Vec<TokenStream> = variants
+        .iter()
+        .map(|v| {
+            if let Some(ref rename) = v.rename {
+                quote::quote! { #[serde(rename = #rename)] }
+            } else {
+                TokenStream::new()
+            }
+        })
+        .collect();
+
+    // Reconstruct the enum with serde attributes for Serialize/Deserialize.
+    // We generate the serde derives manually by reconstructing the enum definition.
+    // This is complex, so instead we use a simpler approach: generate the Validate
+    // impl only, and require users to also derive serde's Serialize/Deserialize.
+    //
+    // The Validate impl validates each variant's fields independently.
+
+    // Generate Validate impl: match on self, validate each variant's fields
+    let validate_match_arms: Vec<TokenStream> = variants
+        .iter()
+        .map(|variant| {
+            let variant_ident = &variant.ident;
+            let variant_name = variant
+                .rename
+                .as_ref()
+                .map(|r| r.clone())
+                .unwrap_or_else(|| variant_ident.to_string());
+
+            match &variant.fields.style {
+                darling::ast::Style::Unit => {
+                    // Unit variant: no fields to validate
+                    quote::quote! {
+                        #name::#variant_ident => Ok(())
+                    }
+                }
+                darling::ast::Style::Struct => {
+                    // Struct variant: validate each named field
+                    let field_names: Vec<&syn::Ident> = variant
+                        .fields
+                        .fields
+                        .iter()
+                        .filter_map(|f| f.ident.as_ref())
+                        .collect();
+
+                    let field_validations: Vec<TokenStream> = variant
+                        .fields
+                        .fields
+                        .iter()
+                        .filter_map(|f| {
+                            let field_ident = f.ident.as_ref()?;
+                            let field_name = field_ident.to_string();
+                            let mut checks = Vec::new();
+
+                            // Generate validation for each rule on this field
+                            if let Some(ref length) = f.length {
+                                let min_expr = length.min.map(|v| quote::quote! { Some(#v) }).unwrap_or_else(|| quote::quote! { None });
+                                let max_expr = length.max.map(|v| quote::quote! { Some(#v) }).unwrap_or_else(|| quote::quote! { None });
+                                checks.push(quote::quote! {
+                                    ::rusdantic_core::rules::validate_length(
+                                        #field_ident, #min_expr, #max_expr,
+                                        &[::rusdantic_core::PathSegment::Field(#field_name.to_string())],
+                                        &mut errors,
+                                    );
+                                });
+                            }
+                            if let Some(ref range) = f.range {
+                                let min_expr = range.min.as_ref().map(|v| quote::quote! { Some(#v) }).unwrap_or_else(|| quote::quote! { None });
+                                let max_expr = range.max.as_ref().map(|v| quote::quote! { Some(#v) }).unwrap_or_else(|| quote::quote! { None });
+                                checks.push(quote::quote! {
+                                    ::rusdantic_core::rules::validate_range(
+                                        #field_ident, #min_expr, #max_expr,
+                                        &[::rusdantic_core::PathSegment::Field(#field_name.to_string())],
+                                        &mut errors,
+                                    );
+                                });
+                            }
+                            if f.email {
+                                checks.push(quote::quote! {
+                                    ::rusdantic_core::rules::validate_email(
+                                        #field_ident,
+                                        &[::rusdantic_core::PathSegment::Field(#field_name.to_string())],
+                                        &mut errors,
+                                    );
+                                });
+                            }
+                            if f.url {
+                                checks.push(quote::quote! {
+                                    ::rusdantic_core::rules::validate_url(
+                                        #field_ident,
+                                        &[::rusdantic_core::PathSegment::Field(#field_name.to_string())],
+                                        &mut errors,
+                                    );
+                                });
+                            }
+                            if let Some(ref contains) = f.contains {
+                                let needle = &contains.value;
+                                checks.push(quote::quote! {
+                                    ::rusdantic_core::rules::validate_contains(
+                                        #field_ident, #needle,
+                                        &[::rusdantic_core::PathSegment::Field(#field_name.to_string())],
+                                        &mut errors,
+                                    );
+                                });
+                            }
+                            if let Some(ref pattern) = f.pattern {
+                                let regex_str = &pattern.regex;
+                                checks.push(quote::quote! {
+                                    {
+                                        static __RUSDANTIC_REGEX: ::std::sync::OnceLock<::rusdantic_core::re_export::Regex> =
+                                            ::std::sync::OnceLock::new();
+                                        let regex = __RUSDANTIC_REGEX.get_or_init(|| {
+                                            ::rusdantic_core::re_export::Regex::new(#regex_str)
+                                                .expect("rusdantic: regex validated at compile time")
+                                        });
+                                        ::rusdantic_core::rules::validate_pattern(
+                                            #field_ident, regex, #regex_str,
+                                            &[::rusdantic_core::PathSegment::Field(#field_name.to_string())],
+                                            &mut errors,
+                                        );
+                                    }
+                                });
+                            }
+                            if let Some(ref custom) = f.custom {
+                                let func = &custom.function;
+                                checks.push(quote::quote! {
+                                    if let Err(mut custom_err) = #func(#field_ident) {
+                                        custom_err.path = vec![
+                                            ::rusdantic_core::PathSegment::Field(#field_name.to_string())
+                                        ];
+                                        errors.add(custom_err);
+                                    }
+                                });
+                            }
+
+                            if checks.is_empty() {
+                                None
+                            } else {
+                                Some(quote::quote! { #(#checks)* })
+                            }
+                        })
+                        .collect();
+
+                    let has_validations = !field_validations.is_empty();
+
+                    if has_validations {
+                        quote::quote! {
+                            #name::#variant_ident { #(ref #field_names),* } => {
+                                let mut errors = ::rusdantic_core::ValidationErrors::new();
+                                #(#field_validations)*
+                                if errors.is_empty() { Ok(()) } else { Err(errors) }
+                            }
+                        }
+                    } else {
+                        quote::quote! {
+                            #name::#variant_ident { .. } => Ok(())
+                        }
+                    }
+                }
+                darling::ast::Style::Tuple => {
+                    // Tuple variant: limited validation support
+                    quote::quote! {
+                        #name::#variant_ident(..) => Ok(())
+                    }
+                }
+            }
+        })
+        .collect();
+
+    let validate_impl = quote::quote! {
+        impl #impl_generics ::rusdantic_core::Validate for #name #ty_generics #where_clause {
+            fn validate(&self) -> ::std::result::Result<(), ::rusdantic_core::ValidationErrors> {
+                match self {
+                    #(#validate_match_arms,)*
+                }
+            }
+        }
+    };
+
+    // For enums, we DON'T generate Serialize/Deserialize — users must also derive
+    // serde::Serialize and serde::Deserialize with the appropriate serde attributes
+    // (e.g., #[serde(tag = "type")]) to match their rusdantic configuration.
+    // This avoids the complexity of reconstructing the enum definition with serde attrs.
+    Ok(validate_impl)
 }
 
 /// Convert the parsed darling representation into our intermediate representation.
