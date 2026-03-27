@@ -16,6 +16,7 @@ include = ["src/**/*", "../LICENSE-*", "../README.md"]
 [dependencies]
 rusdantic-core = { path = "../rusdantic-core", version = "0.1.0" }
 rusdantic-derive = { path = "../rusdantic-derive", version = "0.1.0" }
+rusdantic-types = { path = "../rusdantic-types", version = "0.1.0" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 

@@ -60,6 +60,11 @@ pub use rusdantic_derive::Rusdantic;
 
 // Re-export core types so users only need `use rusdantic::*` or `use rusdantic::prelude::*`
 pub use rusdantic_core::dump::{Dump, DumpOptions};
+
+/// Constrained types: PositiveInt, NonEmptyString, EmailStr, SecretStr, HttpUrl, etc.
+pub mod types {
+    pub use rusdantic_types::*;
+}
 pub use rusdantic_core::{PathSegment, Validate, ValidationError, ValidationErrors};
 
 /// Error type for Rusdantic operations that may fail due to either

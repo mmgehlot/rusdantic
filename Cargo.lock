@@ -788,6 +788,7 @@ dependencies = [
  "proptest",
  "rusdantic-core",
  "rusdantic-derive",
+ "rusdantic-types",
  "serde",
  "serde_json",
  "trybuild",
@@ -814,6 +815,19 @@ dependencies = [
  "quote",
  "regex-syntax",
  "syn",
+]
+
+[[package]]
+name = "rusdantic-types"
+version = "0.1.0"
+dependencies = [
+ "proptest",
+ "regex",
+ "rusdantic-core",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "url",
 ]
 
 [[package]]
