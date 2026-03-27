@@ -132,7 +132,9 @@ pub fn generate_deserialize_impl(validated: &ValidatedStruct) -> TokenStream {
         })
         .collect();
 
-    // Generate match arms in visit_map for setting field values
+    // Generate match arms in visit_map for setting field values.
+    // When coercion is enabled for a field, we use a coercing deserializer
+    // instead of the default next_value().
     let field_set_arms: Vec<TokenStream> = deser_fields
         .iter()
         .map(|f| {
@@ -151,6 +153,14 @@ pub fn generate_deserialize_impl(validated: &ValidatedStruct) -> TokenStream {
                 }
             });
 
+            // Determine if this field should use type coercion.
+            // If so, generate a coercing next_value call based on the field type.
+            let next_value = if f.coerce {
+                generate_coercing_next_value(f)
+            } else {
+                quote! { __map.next_value()? }
+            };
+
             // Handle duplicate field detection
             quote! {
                 __Field::#variant => {
@@ -158,7 +168,7 @@ pub fn generate_deserialize_impl(validated: &ValidatedStruct) -> TokenStream {
                         return Err(::serde::de::Error::duplicate_field(#serialized));
                     }
                     #deprecation_warning
-                    #var = Some(__map.next_value()?);
+                    #var = Some(#next_value);
                 }
             }
         })
@@ -283,6 +293,9 @@ pub fn generate_deserialize_impl(validated: &ValidatedStruct) -> TokenStream {
             where
                 __D: ::serde::Deserializer<'de>,
             {
+                // Import IntoDeserializer for type coercion support
+                use ::serde::de::IntoDeserializer as _;
+
                 // Step 1: Define field identifier enum for key matching
                 #[allow(non_camel_case_types)]
                 enum __Field {
@@ -698,3 +711,108 @@ fn generate_deser_rule_check(rule: &ValidationRule, field: &ValidatedField) -> T
     }
 }
 
+/// Generate a coercing `next_value` call for a field based on its type.
+/// This detects the field type and uses the appropriate coercion function
+/// from `rusdantic_core::coerce`.
+fn generate_coercing_next_value(field: &ValidatedField) -> TokenStream {
+    let ty = &field.ty;
+    let type_name = extract_inner_type_name(ty);
+
+    match type_name.as_str() {
+        // Integer types: use coerce_int
+        "i8" | "i16" | "i32" | "i64" | "i128" | "isize" | "u8" | "u16" | "u32" | "u64"
+        | "u128" | "usize" => {
+            // For Option<T>, we need to extract the inner type for coercion
+            let inner_ty = extract_inner_rust_type(ty);
+            quote! {
+                {
+                    // Type coercion: accept strings, floats, bools as integer
+                    let __raw = __map.next_value::<::serde_json::Value>()?;
+                    let __coerced: #inner_ty = ::rusdantic_core::coerce::deserialize_coerce_int(
+                        ::serde::de::IntoDeserializer::into_deserializer(__raw)
+                    )
+                    .map_err(::serde::de::Error::custom)?;
+                    __coerced
+                }
+            }
+        }
+        // Float types: use coerce_float
+        "f32" | "f64" => {
+            let inner_ty = extract_inner_rust_type(ty);
+            quote! {
+                {
+                    let __raw = __map.next_value::<::serde_json::Value>()?;
+                    let __coerced: #inner_ty = ::rusdantic_core::coerce::deserialize_coerce_float(
+                        ::serde::de::IntoDeserializer::into_deserializer(__raw)
+                    )
+                    .map_err(::serde::de::Error::custom)?;
+                    __coerced
+                }
+            }
+        }
+        // Bool: use coerce_bool
+        "bool" => {
+            quote! {
+                {
+                    let __raw = __map.next_value::<::serde_json::Value>()?;
+                    ::rusdantic_core::coerce::deserialize_coerce_bool(
+                        ::serde::de::IntoDeserializer::into_deserializer(__raw)
+                    )
+                    .map_err(::serde::de::Error::custom)?
+                }
+            }
+        }
+        // String: use coerce_string
+        "String" => {
+            quote! {
+                {
+                    let __raw = __map.next_value::<::serde_json::Value>()?;
+                    ::rusdantic_core::coerce::deserialize_coerce_string(
+                        ::serde::de::IntoDeserializer::into_deserializer(__raw)
+                    )
+                    .map_err(::serde::de::Error::custom)?
+                }
+            }
+        }
+        // For other types, fall back to standard deserialization
+        _ => {
+            quote! { __map.next_value()? }
+        }
+    }
+}
+
+/// Extract the inner Rust type, unwrapping Option<T> to get T.
+/// Used by coercion codegen to annotate the coerced value's type.
+fn extract_inner_rust_type(ty: &syn::Type) -> &syn::Type {
+    if let syn::Type::Path(type_path) = ty {
+        if let Some(segment) = type_path.path.segments.last() {
+            if segment.ident == "Option" {
+                if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
+                    if let Some(syn::GenericArgument::Type(inner)) = args.args.first() {
+                        return inner;
+                    }
+                }
+            }
+        }
+    }
+    ty
+}
+
+/// Extract the type name from a syn::Type, handling Option<T> by returning T.
+fn extract_inner_type_name(ty: &syn::Type) -> String {
+    if let syn::Type::Path(type_path) = ty {
+        if let Some(segment) = type_path.path.segments.last() {
+            let name = segment.ident.to_string();
+            // For Option<T>, extract T
+            if name == "Option" {
+                if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
+                    if let Some(syn::GenericArgument::Type(inner)) = args.args.first() {
+                        return extract_inner_type_name(inner);
+                    }
+                }
+            }
+            return name;
+        }
+    }
+    "unknown".to_string()
+}
