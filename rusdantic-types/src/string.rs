@@ -3,7 +3,6 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::ops::Deref;
-use std::sync::OnceLock;
 
 /// A non-empty string (length >= 1).
 ///
@@ -87,15 +86,9 @@ impl<'de> Deserialize<'de> for NonEmptyString {
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EmailStr(String);
 
-/// Email regex — compiled once, reused forever.
-static EMAIL_REGEX: OnceLock<regex::Regex> = OnceLock::new();
-
+/// Get the shared email regex from rusdantic-core (single source of truth).
 fn get_email_regex() -> &'static regex::Regex {
-    EMAIL_REGEX.get_or_init(|| {
-        regex::Regex::new(
-            r"(?i)^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,}$"
-        ).expect("email regex is valid")
-    })
+    rusdantic_core::rules::email::get_email_regex()
 }
 
 impl EmailStr {

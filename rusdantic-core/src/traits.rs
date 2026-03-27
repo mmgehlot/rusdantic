@@ -47,7 +47,7 @@ pub trait Validate {
     /// let ctx = DbContext { /* ... */ };
     /// user.validate_with_context(&ctx)?;
     /// ```
-    fn validate_with_context<C>(&self, _ctx: &C) -> Result<(), ValidationErrors> {
+    fn validate_with_context(&self, _ctx: &dyn std::any::Any) -> Result<(), ValidationErrors> {
         self.validate()
     }
 }

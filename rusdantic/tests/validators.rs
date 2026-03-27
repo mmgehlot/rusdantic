@@ -191,3 +191,78 @@ fn test_valid_registration() {
     };
     assert!(data.validate().is_ok());
 }
+
+// =============================================================================
+// Context-aware validators
+// =============================================================================
+
+/// Simulated context (e.g., database connection, config)
+struct AppContext {
+    banned_words: Vec<String>,
+}
+
+/// Context-aware validator. Receives `&dyn Any` and must downcast to the
+/// expected context type. Returns Ok if the context type doesn't match
+/// (graceful degradation).
+fn check_not_banned(value: &String, ctx: &dyn std::any::Any) -> Result<(), ValidationError> {
+    // Downcast to our expected context type
+    if let Some(app_ctx) = ctx.downcast_ref::<AppContext>() {
+        if app_ctx.banned_words.contains(value) {
+            return Err(ValidationError::new(
+                "banned",
+                format!("'{}' is banned", value),
+            ));
+        }
+    }
+    Ok(())
+}
+
+#[derive(Rusdantic, Debug)]
+struct WithContextValidator {
+    #[rusdantic(length(min = 1), custom_with_context(function = check_not_banned))]
+    username: String,
+}
+
+#[test]
+fn test_context_validator_passes() {
+    let ctx = AppContext {
+        banned_words: vec!["spam".to_string()],
+    };
+    let data = WithContextValidator {
+        username: "alice".to_string(),
+    };
+    assert!(data.validate_with_context(&ctx).is_ok());
+}
+
+#[test]
+fn test_context_validator_fails() {
+    let ctx = AppContext {
+        banned_words: vec!["spam".to_string()],
+    };
+    let data = WithContextValidator {
+        username: "spam".to_string(),
+    };
+    let err = data.validate_with_context(&ctx).unwrap_err();
+    assert!(err.errors().iter().any(|e| e.code == "banned"));
+}
+
+#[test]
+fn test_context_validator_regular_validate_skips_context() {
+    let data = WithContextValidator {
+        username: "spam".to_string(),
+    };
+    // Regular validate() ignores context validators — "spam" passes length(min=1)
+    assert!(data.validate().is_ok());
+}
+
+#[test]
+fn test_context_validator_combines_with_field_errors() {
+    let ctx = AppContext {
+        banned_words: vec!["x".to_string()],
+    };
+    let data = WithContextValidator {
+        username: "".to_string(), // fails length(min=1)
+    };
+    let err = data.validate_with_context(&ctx).unwrap_err();
+    assert!(err.errors().iter().any(|e| e.code == "length_min"));
+}

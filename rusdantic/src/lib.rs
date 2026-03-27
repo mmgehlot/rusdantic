@@ -77,6 +77,13 @@ pub enum RusdanticError {
     Deserialization(serde_json::Error),
     /// Validation errors (correct structure but invalid data values).
     Validation(ValidationErrors),
+    /// Input exceeds the configured size limit.
+    InputTooLarge {
+        /// Actual input size in bytes.
+        actual: usize,
+        /// Maximum allowed size in bytes.
+        max: usize,
+    },
 }
 
 impl std::fmt::Display for RusdanticError {
@@ -84,6 +91,11 @@ impl std::fmt::Display for RusdanticError {
         match self {
             RusdanticError::Deserialization(e) => write!(f, "deserialization error: {}", e),
             RusdanticError::Validation(e) => write!(f, "{}", e),
+            RusdanticError::InputTooLarge { actual, max } => write!(
+                f,
+                "input size ({} bytes) exceeds maximum ({} bytes)",
+                actual, max
+            ),
         }
     }
 }
@@ -93,6 +105,7 @@ impl std::error::Error for RusdanticError {
         match self {
             RusdanticError::Deserialization(e) => Some(e),
             RusdanticError::Validation(e) => Some(e),
+            RusdanticError::InputTooLarge { .. } => None,
         }
     }
 }
@@ -142,6 +155,41 @@ impl From<ValidationErrors> for RusdanticError {
 pub fn from_json<T: serde::de::DeserializeOwned>(json: &str) -> Result<T, RusdanticError> {
     serde_json::from_str(json).map_err(RusdanticError::Deserialization)
 }
+
+/// Deserialize a JSON string with an input size limit.
+///
+/// Returns an error if the input exceeds `max_bytes` before attempting
+/// deserialization. This prevents memory exhaustion from oversized payloads.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use rusdantic::prelude::*;
+///
+/// #[derive(Rusdantic, Debug)]
+/// struct Config {
+///     name: String,
+/// }
+///
+/// // Reject inputs larger than 1MB
+/// let result: Result<Config, _> = rusdantic::from_json_with_limit(
+///     r#"{"name": "test"}"#,
+///     1_000_000,
+/// );
+/// ```
+pub fn from_json_with_limit<T: serde::de::DeserializeOwned>(
+    json: &str,
+    max_bytes: usize,
+) -> Result<T, RusdanticError> {
+    if json.len() > max_bytes {
+        return Err(RusdanticError::InputTooLarge {
+            actual: json.len(),
+            max: max_bytes,
+        });
+    }
+    serde_json::from_str(json).map_err(RusdanticError::Deserialization)
+}
+
 
 /// Deserialize a `serde_json::Value` into a validated struct.
 ///

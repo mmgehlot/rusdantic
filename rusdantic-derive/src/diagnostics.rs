@@ -6,7 +6,7 @@
 //! - `pattern(regex = "[invalid")` → "invalid regex pattern: ..."
 //! - `length(min = -1)` → caught by Rust's type system (usize can't be negative)
 
-use crate::parse::{LengthValidator, PatternValidator, RusdanticField, RusdanticInput};
+use crate::parse::{LengthValidator, PatternValidator, RangeValidator, RusdanticField, RusdanticInput};
 
 /// Validate all compile-time-checkable configurations in the parsed input.
 /// Returns a vector of errors; empty means all checks passed.
@@ -66,6 +66,11 @@ fn validate_field(field: &RusdanticField, errors: &mut Vec<syn::Error>) {
         validate_length(length, span, errors);
     }
 
+    // Validate range: min <= max when both are literal values
+    if let Some(ref range) = field.range {
+        validate_range(range, span, errors);
+    }
+
     // Validate regex pattern syntax at compile time
     if let Some(ref pattern) = field.pattern {
         validate_pattern(pattern, span, errors);
@@ -115,6 +120,52 @@ fn validate_length(length: &LengthValidator, span: proc_macro2::Span, errors: &m
                 ),
             ));
         }
+    }
+}
+
+/// Validate that range constraints are consistent (min <= max) for literal values.
+/// For non-literal expressions, we can't check at compile time and skip gracefully.
+fn validate_range(
+    range: &RangeValidator,
+    span: proc_macro2::Span,
+    errors: &mut Vec<syn::Error>,
+) {
+    // Try to extract literal values from min and max expressions.
+    // Only integer and float literals can be compared at compile time.
+    let min_val = range.min.as_ref().and_then(extract_literal_f64);
+    let max_val = range.max.as_ref().and_then(extract_literal_f64);
+
+    if let (Some(min), Some(max)) = (min_val, max_val) {
+        if min > max {
+            errors.push(syn::Error::new(
+                span,
+                format!(
+                    "range constraint is invalid: min ({}) must be <= max ({})",
+                    min, max
+                ),
+            ));
+        }
+    }
+}
+
+/// Try to extract a numeric literal value from a syn::Expr as f64.
+/// Returns None for non-literal expressions.
+fn extract_literal_f64(expr: &syn::Expr) -> Option<f64> {
+    match expr {
+        syn::Expr::Lit(lit) => match &lit.lit {
+            syn::Lit::Int(i) => i.base10_parse::<f64>().ok(),
+            syn::Lit::Float(f) => f.base10_parse::<f64>().ok(),
+            _ => None,
+        },
+        // Handle negative literals: -42
+        syn::Expr::Unary(unary) => {
+            if matches!(unary.op, syn::UnOp::Neg(_)) {
+                extract_literal_f64(&unary.expr).map(|v| -v)
+            } else {
+                None
+            }
+        }
+        _ => None,
     }
 }
 

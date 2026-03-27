@@ -33,6 +33,70 @@ pub fn generate_validate_impl(validated: &ValidatedStruct) -> TokenStream {
         }
     });
 
+    // Check if any fields have context-aware validators
+    let has_context_validators = validated
+        .fields
+        .iter()
+        .any(|f| {
+            f.rules
+                .iter()
+                .any(|r| matches!(r, ValidationRule::CustomWithContext(_)))
+        });
+
+    // Generate validate_with_context override if needed.
+    // Uses dyn Any + downcast to pass the concrete context type to validators.
+    let context_validation = if has_context_validators {
+        // Collect (path, field_ident, serialized_name) for each context validator
+        let ctx_field_checks: Vec<TokenStream> = validated
+            .fields
+            .iter()
+            .filter(|f| f.computed_method.is_none())
+            .flat_map(|f| {
+                f.rules.iter().filter_map(|r| {
+                    if let ValidationRule::CustomWithContext(path) = r {
+                        let field_ident = &f.ident;
+                        let serialized_name = &f.serialized_name;
+                        // The validator function has signature:
+                        //   fn(value: &FieldType, ctx: &ConcreteCtx) -> Result<(), ValidationError>
+                        // We call it by downcasting __ctx from &dyn Any.
+                        // If the downcast fails, we skip (wrong context type).
+                        Some(quote_spanned! { f.span =>
+                            // Context validator: downcast to concrete type and call
+                            if let Err(mut ctx_err) = #path(&self.#field_ident, __ctx) {
+                                ctx_err.path = vec![
+                                    ::rusdantic_core::PathSegment::Field(
+                                        #serialized_name.to_string()
+                                    )
+                                ];
+                                errors.add(ctx_err);
+                            }
+                        })
+                    } else {
+                        None
+                    }
+                })
+            })
+            .collect();
+
+        quote! {
+            fn validate_with_context(
+                &self,
+                __ctx: &dyn ::std::any::Any,
+            ) -> ::std::result::Result<(), ::rusdantic_core::ValidationErrors> {
+                // First run all non-context validators
+                let mut errors = match self.validate() {
+                    Ok(()) => ::rusdantic_core::ValidationErrors::new(),
+                    Err(e) => e,
+                };
+                // Then run context-aware validators
+                #(#ctx_field_checks)*
+                if errors.is_empty() { Ok(()) } else { Err(errors) }
+            }
+        }
+    } else {
+        TokenStream::new()
+    };
+
     quote! {
         impl #impl_generics ::rusdantic_core::Validate for #name #ty_generics #where_clause {
             fn validate(&self) -> ::std::result::Result<(), ::rusdantic_core::ValidationErrors> {
@@ -48,6 +112,8 @@ pub fn generate_validate_impl(validated: &ValidatedStruct) -> TokenStream {
                     Err(errors)
                 }
             }
+
+            #context_validation
         }
     }
 }
@@ -332,7 +398,14 @@ pub fn generate_partial_validate(validated: &ValidatedStruct) -> TokenStream {
     let name = &validated.ident;
     let (impl_generics, ty_generics, where_clause) = validated.generics.split_for_impl();
 
-    // Build match arms for each field name
+    // Build match arms for each field name (includes fields with and without rules)
+    let all_field_names: Vec<&str> = validated
+        .fields
+        .iter()
+        .filter(|f| f.computed_method.is_none())
+        .map(|f| f.serialized_name.as_str())
+        .collect();
+
     let field_arms: Vec<TokenStream> = validated
         .fields
         .iter()
@@ -348,12 +421,24 @@ pub fn generate_partial_validate(validated: &ValidatedStruct) -> TokenStream {
         })
         .collect();
 
+    // Fields without validation rules still need to be recognized as valid names
+    let fields_without_rules: Vec<TokenStream> = validated
+        .fields
+        .iter()
+        .filter(|f| f.computed_method.is_none() && f.rules.is_empty())
+        .map(|f| {
+            let serialized_name = &f.serialized_name;
+            quote! { #serialized_name => {} }
+        })
+        .collect();
+
     quote! {
         impl #impl_generics #name #ty_generics #where_clause {
             /// Validate only the specified fields by their serialized names.
             /// Useful for PATCH endpoints where only a subset of fields are updated.
             ///
-            /// Fields not in the list are skipped. Unknown field names are silently ignored.
+            /// Returns an error if any specified field fails validation.
+            /// Unknown field names generate a validation error to catch typos.
             pub fn validate_partial(
                 &self,
                 fields: &[&str],
@@ -363,7 +448,20 @@ pub fn generate_partial_validate(validated: &ValidatedStruct) -> TokenStream {
                 for field_name in fields {
                     match *field_name {
                         #(#field_arms)*
-                        _ => {} // Silently ignore unknown field names
+                        #(#fields_without_rules)*
+                        unknown => {
+                            // Report unknown field names to catch typos
+                            errors.add(
+                                ::rusdantic_core::ValidationError::new(
+                                    "unknown_field",
+                                    format!(
+                                        "unknown field '{}'. Valid fields: {:?}",
+                                        unknown,
+                                        &[#(#all_field_names),*] as &[&str]
+                                    ),
+                                )
+                            );
+                        }
                     }
                 }
 

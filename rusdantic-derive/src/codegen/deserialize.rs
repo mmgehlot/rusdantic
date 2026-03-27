@@ -223,22 +223,12 @@ pub fn generate_deserialize_impl(validated: &ValidatedStruct) -> TokenStream {
         .map(|f| generate_deser_field_validation(f))
         .collect();
 
-    // Struct-level custom validation: build a temporary struct to pass to the
-    // cross-field validator function. We clone field values since the validator
-    // receives &Self.
-    let struct_validation = validated.config.custom_validator.as_ref().map(|path| {
-        let field_inits: Vec<TokenStream> = deser_fields
-            .iter()
-            .map(|f| {
-                let ident = &f.ident;
-                quote! { #ident: #ident.clone() }
-            })
-            .collect();
-
+    // Struct-level custom validation runs AFTER struct construction (no cloning).
+    // We construct the struct, then validate, then return or error.
+    let struct_post_validation = validated.config.custom_validator.as_ref().map(|path| {
         quote! {
-            let __temp_struct = #name #ty_generics { #(#field_inits),* };
-            if let Err(struct_errors) = #path(&__temp_struct) {
-                __errors.merge(struct_errors);
+            if let Err(struct_errors) = #path(&__result) {
+                return Err(::serde::de::Error::custom(struct_errors));
             }
         }
     });
@@ -386,22 +376,25 @@ pub fn generate_deserialize_impl(validated: &ValidatedStruct) -> TokenStream {
                         // Apply sanitizers to string fields
                         #(#sanitizer_applications)*
 
-                        // Run validation on all fields, collecting all errors
+                        // Run field-level validation, collecting all errors
                         let mut __errors = ::rusdantic_core::ValidationErrors::new();
                         #(#validation_calls)*
 
-                        // Run struct-level cross-field validation if configured
-                        #struct_validation
-
-                        // Return validation errors if any were found
+                        // Return field validation errors if any were found
                         if !__errors.is_empty() {
                             return Err(::serde::de::Error::custom(__errors));
                         }
 
-                        // All validation passed — construct and return the struct
-                        Ok(#name #ty_generics {
+                        // Construct the struct (all field validations passed)
+                        let __result = #name #ty_generics {
                             #(#struct_construction,)*
-                        })
+                        };
+
+                        // Run struct-level cross-field validation on the
+                        // constructed struct (no cloning needed)
+                        #struct_post_validation
+
+                        Ok(__result)
                     }
                 }
 

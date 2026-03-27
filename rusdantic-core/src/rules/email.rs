@@ -27,8 +27,12 @@ use std::sync::OnceLock;
 /// (quoted strings, comments, IP address literals, etc.).
 static EMAIL_REGEX: OnceLock<regex::Regex> = OnceLock::new();
 
+/// The email regex pattern string. Shared with rusdantic-types::EmailStr.
+pub const EMAIL_REGEX_PATTERN: &str =
+    r"(?i)^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,}$";
+
 /// Get or compile the email validation regex (compiled once, reused forever).
-fn get_email_regex() -> &'static regex::Regex {
+pub fn get_email_regex() -> &'static regex::Regex {
     EMAIL_REGEX.get_or_init(|| {
         // HTML5-spec inspired email regex:
         // Local part: one or more characters from [a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]
