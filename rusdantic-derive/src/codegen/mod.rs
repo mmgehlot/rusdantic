@@ -60,15 +60,33 @@ pub fn expand_rusdantic(input: DeriveInput) -> syn::Result<TokenStream> {
     let schema_impl = schema::generate_schema_impl(&validated);
     let partial_validate = validate::generate_partial_validate(&validated);
 
-    // Step 5: Combine all generated code into a single token stream
-    Ok(quote::quote! {
-        #validate_impl
-        #deserialize_impl
-        #serialize_impl
-        #debug_impl
-        #schema_impl
-        #partial_validate
-    })
+    // Step 5: Combine all generated code into a single token stream.
+    // For generic structs, skip schema and partial_validate generation
+    // (they use split_for_impl which works fine for non-generic structs).
+    let has_type_generics = validated.generics.type_params().next().is_some();
+
+    if has_type_generics {
+        // Generic structs: Validate + Serialize (Deserialize is a no-op comment,
+        // schema and partial_validate are skipped since they use impl_generics).
+        // Users should use serde's #[derive(Deserialize)] separately.
+        Ok(quote::quote! {
+            #validate_impl
+            #deserialize_impl
+            #serialize_impl
+            #debug_impl
+        })
+    } else {
+        // Non-generic structs: full codegen including Deserialize with embedded
+        // validation, schema generation, and partial validation.
+        Ok(quote::quote! {
+            #validate_impl
+            #deserialize_impl
+            #serialize_impl
+            #debug_impl
+            #schema_impl
+            #partial_validate
+        })
+    }
 }
 
 /// Convert the parsed darling representation into our intermediate representation.

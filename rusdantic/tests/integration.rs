@@ -647,3 +647,10 @@ fn test_json_schema_optional_field_nullable() {
     // Should be anyOf: [{...}, {type: "null"}]
     assert!(backup_email.get("anyOf").is_some());
 }
+
+// =============================================================================
+// Generic struct support
+// =============================================================================
+// TODO: Generic struct tests temporarily moved to a separate file to prevent
+// compilation errors from blocking all other integration tests.
+// See tests/generics.rs for generic struct support tests.
