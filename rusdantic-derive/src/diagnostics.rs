@@ -74,6 +74,26 @@ fn validate_field(field: &RusdanticField, errors: &mut Vec<syn::Error>) {
     // Warn if email/url validators are applied to non-String-like types
     // (This is a best-effort check; we can't fully resolve types at macro time)
 
+    // Check that `required` is only used on Option<T> fields
+    if field.required {
+        let is_option = if let syn::Type::Path(ref tp) = field.ty {
+            tp.path
+                .segments
+                .last()
+                .map(|s| s.ident == "Option")
+                .unwrap_or(false)
+        } else {
+            false
+        };
+        if !is_option {
+            errors.push(syn::Error::new(
+                span,
+                "`required` can only be used on Option<T> fields. \
+                 Non-Option fields are always required by default.",
+            ));
+        }
+    }
+
     // Check for conflicting sanitizers
     if field.lowercase && field.uppercase {
         errors.push(syn::Error::new(

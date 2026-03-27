@@ -244,7 +244,9 @@ fn expand_enum(parsed: RusdanticInput) -> syn::Result<TokenStream> {
                                         static __RUSDANTIC_REGEX: ::std::sync::OnceLock<::rusdantic_core::re_export::Regex> =
                                             ::std::sync::OnceLock::new();
                                         let regex = __RUSDANTIC_REGEX.get_or_init(|| {
-                                            ::rusdantic_core::re_export::Regex::new(#regex_str)
+                                            ::rusdantic_core::re_export::Regex::new(
+                                                &::rusdantic_core::rules::pattern::anchor_pattern(#regex_str)
+                                            )
                                                 .expect("rusdantic: regex validated at compile time")
                                         });
                                         ::rusdantic_core::rules::validate_pattern(

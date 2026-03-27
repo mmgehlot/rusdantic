@@ -1,15 +1,9 @@
 //! Tests for generic struct support.
-//!
-//! Current limitation: For generic structs, `#[derive(Rusdantic)]` generates
-//! Validate and Serialize impls but NOT Deserialize (due to proc-macro token
-//! parsing issues with `Deserialize<'de>` bounds). Generic structs should
-//! use serde's `#[derive(Deserialize)]` separately and call `.validate()`
-//! after deserialization.
 
 use rusdantic::prelude::*;
 
 /// Generic wrapper struct — Rusdantic generates Validate + Serialize.
-/// Deserialize is provided by serde's derive.
+/// Deserialize must be derived from serde separately for generic structs.
 #[derive(Rusdantic, Debug, Clone, serde::Deserialize)]
 struct GenWrapper<T: std::fmt::Debug + Clone> {
     #[rusdantic(length(min = 1))]

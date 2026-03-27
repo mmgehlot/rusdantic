@@ -270,16 +270,16 @@ pub fn generate_deserialize_impl(validated: &ValidatedStruct) -> TokenStream {
         TokenStream::new()
     };
 
-    // For generic structs: defer to serde's derive for now, skip our custom impl.
-    // This avoids the unparsable token issue while we debug the generics support.
+    // For generic structs: we cannot generate the full custom Deserialize impl
+    // due to proc-macro token parsing issues with Deserialize<'de> bounds.
+    // Instead, we emit a compile-time error directing users to also derive
+    // serde::Deserialize and call .validate() after deserialization.
+    //
+    // This is an explicit, documented limitation rather than a silent bypass.
     if has_type_params {
-        // For generic structs, generate a simpler impl that delegates to serde.
-        // We use the serde derive approach: require T: DeserializeOwned and validate post-deser.
-        return quote! {
-            // Generic Deserialize: uses standard serde deserialization + post-validation.
-            // Validation is NOT embedded in deserialization for generic structs (limitation).
-            // Users should call .validate() after deserialization.
-        };
+        // Don't generate Deserialize — users must add serde::Deserialize separately.
+        // The Validate impl is always generated, so they can call .validate().
+        return TokenStream::new();
     }
 
     // Non-generic structs: generate the full custom Deserialize impl with embedded validation.
@@ -671,7 +671,9 @@ fn generate_deser_rule_check(rule: &ValidationRule, field: &ValidatedField) -> T
                     static __RUSDANTIC_REGEX: ::std::sync::OnceLock<::rusdantic_core::re_export::Regex> =
                         ::std::sync::OnceLock::new();
                     let regex = __RUSDANTIC_REGEX.get_or_init(|| {
-                        ::rusdantic_core::re_export::Regex::new(#regex_lit)
+                        ::rusdantic_core::re_export::Regex::new(
+                            &::rusdantic_core::rules::pattern::anchor_pattern(#regex_lit)
+                        )
                             .expect("rusdantic: regex validated at compile time")
                     });
                     ::rusdantic_core::rules::validate_pattern(

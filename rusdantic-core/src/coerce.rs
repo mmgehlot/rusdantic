@@ -50,20 +50,52 @@ where
             v.trim().parse::<T>().map_err(de::Error::custom)
         }
 
-        // Coerce: float → integer (only if no fractional part)
+        // Coerce: float → integer (only if no fractional part and within safe range)
         fn visit_f64<E: de::Error>(self, v: f64) -> Result<T, E> {
+            if !v.is_finite() {
+                return Err(de::Error::custom(format!(
+                    "cannot coerce {} to integer: value is not finite",
+                    v
+                )));
+            }
             if v.fract() != 0.0 {
                 return Err(de::Error::custom(format!(
                     "cannot coerce float {} to integer: has fractional part",
                     v
                 )));
             }
-            // Convert via i64 for negative values, u64 for positive
+            // Bounds check: verify the float is within the representable range
+            // of i64/u64 and that the conversion preserves precision.
             if v < 0.0 {
+                if v < (i64::MIN as f64) || v > (i64::MAX as f64) {
+                    return Err(de::Error::custom(format!(
+                        "cannot coerce {} to integer: value out of range",
+                        v
+                    )));
+                }
                 let i = v as i64;
+                // Verify round-trip precision: the f64 must exactly represent this integer
+                if (i as f64) != v {
+                    return Err(de::Error::custom(format!(
+                        "cannot coerce {} to integer: loss of precision",
+                        v
+                    )));
+                }
                 T::try_from(i).map_err(de::Error::custom)
             } else {
+                if v > (u64::MAX as f64) {
+                    return Err(de::Error::custom(format!(
+                        "cannot coerce {} to integer: value out of range",
+                        v
+                    )));
+                }
                 let u = v as u64;
+                if (u as f64) != v {
+                    return Err(de::Error::custom(format!(
+                        "cannot coerce {} to integer: loss of precision",
+                        v
+                    )));
+                }
                 T::try_from(u).map_err(de::Error::custom)
             }
         }

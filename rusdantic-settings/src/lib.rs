@@ -34,8 +34,6 @@
 
 #![warn(missing_docs)]
 
-pub mod sources;
-
 use serde::de::DeserializeOwned;
 use std::collections::HashMap;
 

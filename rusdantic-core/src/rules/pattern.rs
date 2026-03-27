@@ -17,6 +17,22 @@ use crate::rules::AsStr;
 /// anchored. If the original regex does not anchor, this function still
 /// checks that the full string matches (via `is_match`). If partial matching
 /// is desired, the regex should use `.*` appropriately.
+/// Ensure a regex pattern matches the FULL string (not partial).
+///
+/// If the pattern doesn't start with `^` and end with `$`, it's wrapped
+/// in `^(?:...)$` to ensure full-string matching. This prevents patterns
+/// like `[0-9]{5}` from matching within "abc12345xyz".
+pub fn anchor_pattern(pattern: &str) -> String {
+    let starts = pattern.starts_with('^');
+    let ends = pattern.ends_with('$');
+    match (starts, ends) {
+        (true, true) => pattern.to_string(),
+        (true, false) => format!("{}$", pattern),
+        (false, true) => format!("^{}", pattern),
+        (false, false) => format!("^(?:{})$", pattern),
+    }
+}
+
 pub fn validate_pattern<T: AsStr>(
     value: &T,
     regex: &regex::Regex,

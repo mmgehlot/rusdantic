@@ -61,9 +61,26 @@ impl PartialEq for SecretStr {
 impl Eq for SecretStr {}
 
 impl Serialize for SecretStr {
-    /// Serializes as the redacted string "**********".
-    /// To serialize the actual value, use `expose_secret()`.
+    /// Serialization skips the secret value entirely, emitting null.
+    ///
+    /// This prevents accidental leakage of secrets into databases, logs,
+    /// or API responses. To intentionally serialize the secret value,
+    /// use `expose_secret()` and serialize it manually.
+    ///
+    /// To serialize as a redacted placeholder string, use the
+    /// `serialize_redacted()` method instead.
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_none()
+    }
+}
+
+impl SecretStr {
+    /// Serialize the value as a redacted placeholder "**********".
+    /// Use this when you want to indicate a secret exists without exposing it.
+    pub fn serialize_redacted<S: serde::Serializer>(
+        &self,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
         "**********".serialize(serializer)
     }
 }
@@ -209,10 +226,12 @@ mod tests {
     }
 
     #[test]
-    fn test_secret_str_serialize_redacted() {
+    fn test_secret_str_serialize_null() {
+        // SecretStr serializes as null to prevent accidental data leakage.
+        // Use expose_secret() for intentional serialization.
         let s = SecretStr::new("my-api-key");
         let json = serde_json::to_value(&s).unwrap();
-        assert_eq!(json, "**********");
+        assert!(json.is_null());
     }
 
     #[test]

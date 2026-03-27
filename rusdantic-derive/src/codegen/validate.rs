@@ -264,7 +264,9 @@ fn generate_rule_check(
                     static __RUSDANTIC_REGEX: ::std::sync::OnceLock<::rusdantic_core::re_export::Regex> =
                         ::std::sync::OnceLock::new();
                     let regex = __RUSDANTIC_REGEX.get_or_init(|| {
-                        ::rusdantic_core::re_export::Regex::new(#regex_lit)
+                        ::rusdantic_core::re_export::Regex::new(
+                            &::rusdantic_core::rules::pattern::anchor_pattern(#regex_lit)
+                        )
                             .expect("rusdantic: regex pattern was validated at compile time")
                     });
                     ::rusdantic_core::rules::validate_pattern(

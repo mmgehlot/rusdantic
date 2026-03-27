@@ -18,8 +18,7 @@ use std::collections::HashSet;
 ///
 /// let opts = DumpOptions::new()
 ///     .exclude(&["password", "secret"])
-///     .exclude_none(true)
-///     .by_alias(true);
+///     .exclude_none(true);
 /// ```
 #[derive(Debug, Clone, Default)]
 pub struct DumpOptions {
@@ -30,13 +29,12 @@ pub struct DumpOptions {
     pub exclude_fields: HashSet<String>,
     /// If true, skip fields with `None` values.
     pub exclude_none: bool,
-    /// If true, skip fields whose values equal their default.
-    pub exclude_defaults: bool,
-    /// If true, use the serialization alias as the field name.
-    pub by_alias: bool,
-    /// If true, only include fields that were explicitly provided
-    /// during deserialization (requires fields_set tracking).
-    pub exclude_unset: bool,
+    // NOTE: The following options require derive-macro-generated metadata
+    // (default values, alias mappings, fields_set tracking) and are planned
+    // for a future release. They are intentionally NOT public fields to
+    // prevent users from setting them with no effect.
+    //
+    // Planned: exclude_defaults, by_alias, exclude_unset
     /// Indentation for JSON output (None = compact).
     pub indent: Option<usize>,
 }
@@ -65,23 +63,6 @@ impl DumpOptions {
         self
     }
 
-    /// If true, skip fields whose values equal their defaults.
-    pub fn exclude_defaults(mut self, yes: bool) -> Self {
-        self.exclude_defaults = yes;
-        self
-    }
-
-    /// If true, use serialization aliases as field names.
-    pub fn by_alias(mut self, yes: bool) -> Self {
-        self.by_alias = yes;
-        self
-    }
-
-    /// If true, only include fields that were explicitly set.
-    pub fn exclude_unset(mut self, yes: bool) -> Self {
-        self.exclude_unset = yes;
-        self
-    }
 
     /// Set JSON indentation (None = compact).
     pub fn indent(mut self, spaces: usize) -> Self {
