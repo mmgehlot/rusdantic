@@ -9,6 +9,7 @@
 
 #![warn(missing_docs)]
 
+pub mod adapter;
 pub mod coerce;
 pub mod dump;
 pub mod error;
