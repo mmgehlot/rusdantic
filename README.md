@@ -83,7 +83,7 @@ fn main() {
 
 ## Examples
 
-Rusdantic ships with **10 runnable examples** covering every major feature. Run any with `cargo run --example <name>`.
+Rusdantic ships with **11 runnable examples** covering every major feature. Run any with `cargo run --example <name>`.
 
 ### Type Coercion
 
@@ -459,6 +459,21 @@ Run any example with `cargo run --example <name>`:
 | `types_library` | PositiveInt, FiniteFloat, NonEmptyString, EmailStr, SecretStr, HttpUrl |
 | `partial_validation` | PATCH endpoint partial validation, unknown field detection |
 | `json_schema` | JSON Schema generation with constraints |
+
+## Security Notes
+
+- **PII `redact(hash)` mode**: Uses `std::collections::hash_map::DefaultHasher` for **correlation purposes only** — NOT cryptographically secure. For production secret hashing, use SHA-256 or bcrypt in a custom validator.
+- **`SecretStr` Hash trait**: The `Hash` implementation is NOT constant-time. Avoid using `SecretStr` as a `HashMap` key in security-sensitive contexts.
+- **Settings `from_dotenv()`**: Reads from a file path — ensure the path is trusted and not user-controlled to prevent path traversal.
+- **Custom validators**: Must not panic. Panics during validation propagate through serde and may cause unexpected behavior.
+- **Computed fields**: Methods called during serialization bypass validation and redaction. Do not return sensitive data from computed methods.
+
+## Known Limitations
+
+- **Generic structs**: `#[derive(Rusdantic)]` on generic types generates `Validate` + `Serialize` but NOT `Deserialize`. Add `#[derive(serde::Deserialize)]` manually and call `.validate()` after deserialization. `json_schema()` and `validate_partial()` are also unavailable for generic types.
+- **Enum support**: Enums get only `Validate` impl — you must also derive `serde::Serialize` and `serde::Deserialize`. Tuple variants skip field validation.
+- **Sanitizers**: Only applied during `from_json()` deserialization, NOT when calling `.validate()` on manually constructed structs.
+- **`validate_partial()`**: Field names must use **serialized** names (e.g., `"camelCase"` if `rename_all = "camelCase"`), not Rust field names.
 
 ## Contributing
 

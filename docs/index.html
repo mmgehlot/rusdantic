@@ -616,7 +616,7 @@
       <a href="#all-features">Features</a>
       <a href="#crates">Crates</a>
       <a href="#examples">Examples</a>
-      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic" class="nav-cta">GitHub</a>
+      <a href="https://github.com/mmgehlot/rusdantic" class="nav-cta">GitHub</a>
     </div>
   </div>
 </nav>
@@ -635,7 +635,7 @@
     <p class="tagline fade-in">Pydantic for Rust. One derive. Full validation.</p>
     <div class="hero-buttons fade-in">
       <a href="#code" class="btn btn-primary">Get Started</a>
-      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic" class="btn btn-secondary">
+      <a href="https://github.com/mmgehlot/rusdantic" class="btn btn-secondary">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
         GitHub
       </a>
@@ -789,13 +789,13 @@
 
 <span class="attr">#[derive(Rusdantic)]</span>
 <span class="kw">struct</span> <span class="ty">User</span> {
-    <span class="attr">#[rusdantic(min_length = 1, max_length = 50)]</span>
+    <span class="attr">#[rusdantic(length(min = 1, max = 50))]</span>
     name: <span class="ty">String</span>,
 
     <span class="attr">#[rusdantic(email)]</span>
     email: <span class="ty">String</span>,
 
-    <span class="attr">#[rusdantic(ge = 0, le = 150)]</span>
+    <span class="attr">#[rusdantic(range(min = 0, max = 150))]</span>
     age: <span class="ty">u8</span>,
 }
 
@@ -838,7 +838,7 @@
 
 <span class="attr">#[derive(Rusdantic)]</span>
 <span class="kw">struct</span> <span class="ty">Profile</span> {
-    <span class="attr">#[rusdantic(trim, min_length = 1)]</span>
+    <span class="attr">#[rusdantic(trim, length(min = 1))]</span>
     name: <span class="ty">String</span>,
 
     <span class="attr">#[rusdantic(trim, lowercase)]</span>
@@ -862,10 +862,10 @@
 
 <span class="attr">#[derive(Rusdantic)]</span>
 <span class="kw">struct</span> <span class="ty">Event</span> {
-    <span class="attr">#[rusdantic(min_length = 1)]</span>
+    <span class="attr">#[rusdantic(length(min = 1))]</span>
     title: <span class="ty">String</span>,
 
-    <span class="attr">#[rusdantic(ge = 1)]</span>
+    <span class="attr">#[rusdantic(range(min = 1))]</span>
     attendees: <span class="ty">u32</span>,
 
     <span class="attr">#[rusdantic(email)]</span>
@@ -900,13 +900,13 @@
     <h2 class="section-title fade-in">Everything included</h2>
     <p class="section-subtitle fade-in">A batteries-included validation framework for Rust.</p>
     <div class="feature-grid">
-      <div class="feature-item fade-in"><span class="feature-emoji">&#9989;</span><span>min_length / max_length</span></div>
-      <div class="feature-item fade-in"><span class="feature-emoji">&#9989;</span><span>ge / le / gt / lt</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#9989;</span><span>length(min, max)</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#9989;</span><span>range(min, max)</span></div>
       <div class="feature-item fade-in"><span class="feature-emoji">&#9989;</span><span>email validator</span></div>
       <div class="feature-item fade-in"><span class="feature-emoji">&#9989;</span><span>url validator</span></div>
       <div class="feature-item fade-in"><span class="feature-emoji">&#9989;</span><span>regex / pattern</span></div>
       <div class="feature-item fade-in"><span class="feature-emoji">&#9989;</span><span>custom validator fn</span></div>
-      <div class="feature-item fade-in"><span class="feature-emoji">&#9989;</span><span>one_of enum check</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#9989;</span><span>nested validation</span></div>
       <div class="feature-item fade-in"><span class="feature-emoji">&#9999;</span><span>trim sanitizer</span></div>
       <div class="feature-item fade-in"><span class="feature-emoji">&#9999;</span><span>lowercase sanitizer</span></div>
       <div class="feature-item fade-in"><span class="feature-emoji">&#9999;</span><span>uppercase sanitizer</span></div>
@@ -966,52 +966,52 @@
     <h2 class="section-title fade-in">Learn by example</h2>
     <p class="section-subtitle fade-in">Ten annotated examples covering every major feature.</p>
     <div class="examples-grid">
-      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic/examples/basic_validation" class="example-card fade-in">
+      <a href="https://github.com/mmgehlot/rusdantic/blob/main/rusdantic/examples/basic.rs" class="example-card fade-in">
         <div class="example-num">01</div>
-        <h4>basic_validation</h4>
+        <h4>basic</h4>
         <p>Simple struct with min/max length, email, and range validators.</p>
       </a>
-      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic/examples/type_coercion" class="example-card fade-in">
+      <a href="https://github.com/mmgehlot/rusdantic/blob/main/rusdantic/examples/coercion.rs" class="example-card fade-in">
         <div class="example-num">02</div>
-        <h4>type_coercion</h4>
+        <h4>coercion</h4>
         <p>Lax and strict coercion modes for strings, numbers, and booleans.</p>
       </a>
-      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic/examples/sanitizers" class="example-card fade-in">
+      <a href="https://github.com/mmgehlot/rusdantic/blob/main/rusdantic/examples/sanitizers_and_redaction.rs" class="example-card fade-in">
         <div class="example-num">03</div>
         <h4>sanitizers</h4>
         <p>Trim, lowercase, uppercase, and strip sanitizers in action.</p>
       </a>
-      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic/examples/pii_redaction" class="example-card fade-in">
+      <a href="https://github.com/mmgehlot/rusdantic/blob/main/rusdantic/examples/sanitizers_and_redaction.rs" class="example-card fade-in">
         <div class="example-num">04</div>
-        <h4>pii_redaction</h4>
+        <h4>sanitizers_and_redaction</h4>
         <p>Redact, mask, and hash modes for protecting sensitive data.</p>
       </a>
-      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic/examples/nested_models" class="example-card fade-in">
+      <a href="https://github.com/mmgehlot/rusdantic/blob/main/rusdantic/examples/nested.rs" class="example-card fade-in">
         <div class="example-num">05</div>
-        <h4>nested_models</h4>
+        <h4>nested</h4>
         <p>Nested structs with recursive validation and error paths.</p>
       </a>
-      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic/examples/enum_validation" class="example-card fade-in">
+      <a href="https://github.com/mmgehlot/rusdantic/blob/main/rusdantic/examples/enums.rs" class="example-card fade-in">
         <div class="example-num">06</div>
-        <h4>enum_validation</h4>
+        <h4>enums</h4>
         <p>Validating enum variants with per-variant constraints.</p>
       </a>
-      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic/examples/json_schema" class="example-card fade-in">
+      <a href="https://github.com/mmgehlot/rusdantic/blob/main/rusdantic/examples/json_schema.rs" class="example-card fade-in">
         <div class="example-num">07</div>
         <h4>json_schema</h4>
         <p>Generate JSON Schema from any Rusdantic model.</p>
       </a>
-      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic/examples/settings" class="example-card fade-in">
+      <a href="https://github.com/mmgehlot/rusdantic/blob/main/rusdantic/examples/types_library.rs" class="example-card fade-in">
         <div class="example-num">08</div>
-        <h4>settings</h4>
+        <h4>types_library</h4>
         <p>Load config from env vars, .env files, and JSON/TOML.</p>
       </a>
-      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic/examples/custom_validators" class="example-card fade-in">
+      <a href="https://github.com/mmgehlot/rusdantic/blob/main/rusdantic/examples/custom_validator.rs" class="example-card fade-in">
         <div class="example-num">09</div>
-        <h4>custom_validators</h4>
+        <h4>custom_validator</h4>
         <p>Write custom validation functions with full error context.</p>
       </a>
-      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic/examples/partial_validation" class="example-card fade-in">
+      <a href="https://github.com/mmgehlot/rusdantic/blob/main/rusdantic/examples/partial_validation.rs" class="example-card fade-in">
         <div class="example-num">10</div>
         <h4>partial_validation</h4>
         <p>Partial models for PATCH endpoints and incremental updates.</p>
@@ -1024,7 +1024,7 @@
 <footer>
   <div class="container">
     <div class="footer-links">
-      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic">GitHub</a>
+      <a href="https://github.com/mmgehlot/rusdantic">GitHub</a>
       <a href="https://crates.io/crates/rusdantic">crates.io</a>
       <a href="https://docs.rs/rusdantic">docs.rs</a>
     </div>
