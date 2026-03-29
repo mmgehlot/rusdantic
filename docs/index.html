@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rusdantic - Pydantic for Rust</title>
+  <meta name="description" content="Rusdantic: Pydantic-inspired data validation framework for Rust. One derive macro, full validation.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --accent: #f97316;
+      --accent-light: #fb923c;
+      --accent-dim: rgba(249, 115, 22, 0.15);
+      --bg: #0a0a0a;
+      --card: #1a1a1a;
+      --card-hover: #222;
+      --border: #333;
+      --text: #e5e5e5;
+      --text-dim: #999;
+      --text-bright: #fff;
+      --code-bg: #111;
+      --green: #22c55e;
+      --red: #ef4444;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --mono: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Nav */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 10, 10, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+    }
+
+    .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+
+    .nav-logo {
+      font-weight: 800;
+      font-size: 1.25rem;
+      color: var(--text-bright);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .nav-logo span { color: var(--accent); }
+
+    .nav-links { display: flex; gap: 2rem; align-items: center; }
+
+    .nav-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text-bright); }
+
+    .nav-cta {
+      background: var(--accent) !important;
+      color: #000 !important;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-weight: 600 !important;
+      transition: opacity 0.2s !important;
+    }
+
+    .nav-cta:hover { opacity: 0.9; }
+
+    .mobile-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    /* Sections */
+    section { padding: 6rem 2rem; }
+
+    .container { max-width: 1200px; margin: 0 auto; }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+
+    .section-title {
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: var(--text-bright);
+      margin-bottom: 1rem;
+      line-height: 1.2;
+    }
+
+    .section-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-dim);
+      max-width: 600px;
+      margin-bottom: 3rem;
+    }
+
+    /* Hero */
+    .hero {
+      padding: 8rem 2rem 6rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(circle, rgba(249, 115, 22, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-badge-row {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.3rem 0.75rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      font-weight: 500;
+    }
+
+    .hero-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    .hero h1 {
+      font-size: clamp(3rem, 8vw, 5.5rem);
+      font-weight: 800;
+      color: var(--text-bright);
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      margin-bottom: 1.25rem;
+    }
+
+    .hero h1 .accent { color: var(--accent); }
+
+    .hero .tagline {
+      font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+      color: var(--text-dim);
+      max-width: 600px;
+      margin: 0 auto 2.5rem;
+      font-weight: 400;
+    }
+
+    .hero-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.85rem 1.75rem;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+    }
+
+    .btn-primary:hover { background: var(--accent-light); transform: translateY(-1px); }
+
+    .btn-secondary {
+      background: var(--card);
+      color: var(--text-bright);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover { border-color: var(--accent); background: var(--card-hover); }
+
+    /* Cards Grid */
+    .cards-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      transition: all 0.3s;
+    }
+
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+    .card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: var(--accent-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .card h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-bright);
+      margin-bottom: 0.5rem;
+    }
+
+    .card p { color: var(--text-dim); font-size: 0.95rem; }
+
+    /* Comparison Grid */
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .compare-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      display: flex;
+      gap: 1rem;
+      transition: all 0.3s;
+    }
+
+    .compare-card:hover { border-color: var(--accent); }
+
+    .compare-icon {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(34, 197, 94, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+    }
+
+    .compare-card h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-bright);
+      margin-bottom: 0.25rem;
+    }
+
+    .compare-card p { font-size: 0.85rem; color: var(--text-dim); }
+
+    .compare-label {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      margin-top: 0.5rem;
+    }
+
+    .label-rusdantic { background: rgba(249,115,22,0.15); color: var(--accent); }
+    .label-pydantic { background: rgba(239,68,68,0.12); color: var(--red); }
+
+    /* Feature Table */
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--card);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 700px;
+    }
+
+    thead th {
+      text-align: left;
+      padding: 1rem 1.25rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+      background: var(--code-bg);
+    }
+
+    thead th:first-child { border-radius: 16px 0 0 0; }
+    thead th:last-child { border-radius: 0 16px 0 0; }
+
+    thead th.highlight { color: var(--accent); }
+
+    tbody td {
+      padding: 0.85rem 1.25rem;
+      font-size: 0.9rem;
+      border-bottom: 1px solid rgba(51,51,51,0.5);
+      color: var(--text-dim);
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+
+    tbody td:first-child {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .check { color: var(--green); font-weight: 700; font-size: 1.1rem; }
+    .cross { color: var(--red); font-weight: 700; font-size: 1.1rem; }
+    .partial { color: #eab308; font-weight: 600; font-size: 0.85rem; }
+
+    /* Code Tabs */
+    .code-section { background: var(--code-bg); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
+
+    .tabs { display: flex; border-bottom: 1px solid var(--border); overflow-x: auto; }
+
+    .tabs input[type="radio"] { display: none; }
+
+    .tabs label {
+      padding: 0.85rem 1.5rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      white-space: nowrap;
+      font-family: var(--font);
+    }
+
+    .tabs label:hover { color: var(--text); }
+
+    .tab-panels { position: relative; }
+
+    .tab-panel {
+      display: none;
+      padding: 1.5rem;
+      animation: fadeIn 0.3s;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    #tab1:checked ~ .tabs label[for="tab1"],
+    #tab2:checked ~ .tabs label[for="tab2"],
+    #tab3:checked ~ .tabs label[for="tab3"],
+    #tab4:checked ~ .tabs label[for="tab4"] {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    #tab1:checked ~ .tab-panels .panel-1,
+    #tab2:checked ~ .tab-panels .panel-2,
+    #tab3:checked ~ .tab-panels .panel-3,
+    #tab4:checked ~ .tab-panels .panel-4 { display: block; }
+
+    pre {
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      color: var(--text-dim);
+    }
+
+    pre .kw { color: var(--accent); font-weight: 600; }
+    pre .str { color: #22c55e; }
+    pre .attr { color: #60a5fa; }
+    pre .cm { color: #555; font-style: italic; }
+    pre .ty { color: #c084fc; }
+    pre .num { color: #f59e0b; }
+
+    /* Feature Grid */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      transition: all 0.2s;
+    }
+
+    .feature-item:hover { border-color: var(--accent); }
+
+    .feature-emoji { font-size: 1.35rem; flex-shrink: 0; }
+
+    .feature-item span:last-child {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    /* Crate Ecosystem */
+    .crate-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .crate-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      text-align: center;
+      transition: all 0.3s;
+    }
+
+    .crate-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+    .crate-card h4 {
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+
+    .crate-card p { font-size: 0.8rem; color: var(--text-dim); }
+
+    /* Examples Grid */
+    .examples-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+
+    .example-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      text-decoration: none;
+      transition: all 0.3s;
+      display: block;
+    }
+
+    .example-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+    .example-card h4 {
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--accent);
+      margin-bottom: 0.35rem;
+    }
+
+    .example-card p { font-size: 0.8rem; color: var(--text-dim); }
+
+    .example-num {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 3rem 2rem;
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 2rem;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--accent); }
+
+    .footer-meta {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      line-height: 1.8;
+    }
+
+    .footer-meta .inspired {
+      font-style: italic;
+      color: var(--accent);
+      opacity: 0.7;
+    }
+
+    /* Animations */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      section { padding: 4rem 1.25rem; }
+      .hero { padding: 6rem 1.25rem 4rem; }
+      .section-title { font-size: 1.75rem; }
+      .nav-links { display: none; }
+      .mobile-toggle { display: block; }
+      .nav-links.open {
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        top: 64px;
+        left: 0;
+        right: 0;
+        background: var(--bg);
+        border-bottom: 1px solid var(--border);
+        padding: 1.5rem 2rem;
+        gap: 1rem;
+      }
+      .comparison-grid { grid-template-columns: 1fr; }
+      .cards-3 { grid-template-columns: 1fr; }
+      .feature-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 480px) {
+      .feature-grid { grid-template-columns: 1fr; }
+      .hero-badge-row { gap: 0.35rem; }
+      .hero-badge { font-size: 0.65rem; padding: 0.2rem 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">Rus<span>dantic</span></a>
+    <button class="mobile-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Toggle menu">&#9776;</button>
+    <div class="nav-links">
+      <a href="#why">Why</a>
+      <a href="#comparison">Comparison</a>
+      <a href="#features-table">Matrix</a>
+      <a href="#code">Code</a>
+      <a href="#all-features">Features</a>
+      <a href="#crates">Crates</a>
+      <a href="#examples">Examples</a>
+      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic" class="nav-cta">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero" id="top">
+  <div class="container">
+    <div class="hero-badge-row fade-in">
+      <span class="hero-badge"><span class="dot"></span> crates.io v0.1.0</span>
+      <span class="hero-badge">docs.rs</span>
+      <span class="hero-badge">CI passing</span>
+      <span class="hero-badge">MIT / Apache-2.0</span>
+      <span class="hero-badge">MSRV 1.70</span>
+    </div>
+    <h1 class="fade-in">Rus<span class="accent">dantic</span></h1>
+    <p class="tagline fade-in">Pydantic for Rust. One derive. Full validation.</p>
+    <div class="hero-buttons fade-in">
+      <a href="#code" class="btn btn-primary">Get Started</a>
+      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic" class="btn btn-secondary">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Why Rusdantic -->
+<section id="why">
+  <div class="container">
+    <p class="section-label fade-in">Why Rusdantic</p>
+    <h2 class="section-title fade-in">Validation that feels native</h2>
+    <p class="section-subtitle fade-in">Rusdantic unifies Serde serialization and validation into a single derive macro. No boilerplate, no runtime cost.</p>
+    <div class="cards-3">
+      <div class="card fade-in">
+        <div class="card-icon">&#9889;</div>
+        <h3>One Derive, Three Traits</h3>
+        <p><code>#[derive(Rusdantic)]</code> generates <code>Serialize</code>, <code>Deserialize</code>, and <code>Validate</code> in a single attribute. One line of code replaces three crates.</p>
+      </div>
+      <div class="card fade-in">
+        <div class="card-icon">&#128737;</div>
+        <h3>Validate-on-Deserialize</h3>
+        <p>Invalid structs never exist in memory. Validation runs during deserialization, so if you hold a value, it's guaranteed valid.</p>
+      </div>
+      <div class="card fade-in">
+        <div class="card-icon">&#128640;</div>
+        <h3>Zero-Cost Validation</h3>
+        <p>All validation logic is monomorphized at compile time. No trait objects, no dynamic dispatch, no runtime overhead.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Pydantic Comparison -->
+<section id="comparison" style="background: var(--code-bg);">
+  <div class="container">
+    <p class="section-label fade-in">Rusdantic vs Pydantic</p>
+    <h2 class="section-title fade-in">Features that Pydantic doesn't have</h2>
+    <p class="section-subtitle fade-in">Rusdantic goes beyond a port. These capabilities are unique to the Rust implementation.</p>
+    <div class="comparison-grid">
+      <div class="compare-card fade-in">
+        <div class="compare-icon">&#128737;</div>
+        <div>
+          <h4>Validate-on-Deserialize</h4>
+          <p>Validation is fused into deserialization. Invalid data is rejected before a struct is ever constructed.</p>
+          <span class="compare-label label-pydantic">Pydantic: structs can exist in invalid state</span>
+        </div>
+      </div>
+      <div class="compare-card fade-in">
+        <div class="compare-icon">&#9889;</div>
+        <div>
+          <h4>Zero-Cost Compile-Time Validation</h4>
+          <p>Validation is monomorphized &mdash; the compiler generates specialized code for each type. No runtime overhead.</p>
+          <span class="compare-label label-pydantic">Pydantic: runtime validation overhead</span>
+        </div>
+      </div>
+      <div class="compare-card fade-in">
+        <div class="compare-icon">&#128274;</div>
+        <div>
+          <h4>Constant-Time PII Comparison</h4>
+          <p><code>SecretStr</code> uses timing-safe equality to prevent side-channel attacks on sensitive data.</p>
+          <span class="compare-label label-pydantic">Pydantic: standard string comparison</span>
+        </div>
+      </div>
+      <div class="compare-card fade-in">
+        <div class="compare-icon">&#127919;</div>
+        <div>
+          <h4>Pattern Auto-Anchoring</h4>
+          <p>Regex patterns are automatically wrapped in <code>^(?:...)$</code> for full-string matching. No accidental partial matches.</p>
+          <span class="compare-label label-pydantic">Pydantic: manual anchoring required</span>
+        </div>
+      </div>
+      <div class="compare-card fade-in">
+        <div class="compare-icon">&#128260;</div>
+        <div>
+          <h4>Serde Native Integration</h4>
+          <p>Built on Serde, not a separate serialization layer. Works with every Serde format out of the box.</p>
+          <span class="compare-label label-pydantic">Pydantic: custom serialization layer</span>
+        </div>
+      </div>
+      <div class="compare-card fade-in">
+        <div class="compare-icon">&#128230;</div>
+        <div>
+          <h4>MSRV 1.70 &mdash; Stable Rust</h4>
+          <p>Works on stable Rust with a minimum supported version of 1.70. No nightly compiler required.</p>
+          <span class="compare-label label-rusdantic">Rusdantic: stable, predictable toolchain</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Feature Table -->
+<section id="features-table">
+  <div class="container">
+    <p class="section-label fade-in">Feature Matrix</p>
+    <h2 class="section-title fade-in">Rusdantic vs the competition</h2>
+    <p class="section-subtitle fade-in">A complete comparison against the two most common Rust validation stacks.</p>
+    <div class="table-wrap fade-in">
+      <table>
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th class="highlight">Rusdantic</th>
+            <th>serde + validator</th>
+            <th>serde + garde</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Setup</td><td><span class="check">1 crate</span></td><td>3+ crates</td><td>2 crates</td></tr>
+          <tr><td>Validate on Deserialize</td><td><span class="check">&#10003;</span></td><td><span class="cross">&#10007;</span></td><td><span class="cross">&#10007;</span></td></tr>
+          <tr><td>Structured Error Paths</td><td><span class="check">&#10003;</span></td><td><span class="partial">partial</span></td><td><span class="check">&#10003;</span></td></tr>
+          <tr><td>Type Coercion</td><td><span class="check">&#10003;</span></td><td><span class="cross">&#10007;</span></td><td><span class="cross">&#10007;</span></td></tr>
+          <tr><td>Field Aliases</td><td><span class="check">&#10003;</span></td><td><span class="cross">&#10007;</span></td><td><span class="cross">&#10007;</span></td></tr>
+          <tr><td>Enum Validation</td><td><span class="check">&#10003;</span></td><td><span class="partial">limited</span></td><td><span class="check">&#10003;</span></td></tr>
+          <tr><td>Sanitizers (trim, lowercase)</td><td><span class="check">&#10003;</span></td><td><span class="cross">&#10007;</span></td><td><span class="cross">&#10007;</span></td></tr>
+          <tr><td>JSON Schema Generation</td><td><span class="check">&#10003;</span></td><td><span class="cross">&#10007;</span></td><td><span class="cross">&#10007;</span></td></tr>
+          <tr><td>PII Redaction</td><td><span class="check">&#10003;</span></td><td><span class="cross">&#10007;</span></td><td><span class="cross">&#10007;</span></td></tr>
+          <tr><td>Partial Validation</td><td><span class="check">&#10003;</span></td><td><span class="cross">&#10007;</span></td><td><span class="cross">&#10007;</span></td></tr>
+          <tr><td>Secret Types</td><td><span class="check">&#10003;</span></td><td><span class="cross">&#10007;</span></td><td><span class="cross">&#10007;</span></td></tr>
+          <tr><td>Settings Management</td><td><span class="check">&#10003;</span></td><td><span class="cross">&#10007;</span></td><td><span class="cross">&#10007;</span></td></tr>
+          <tr><td>Dump Options</td><td><span class="check">&#10003;</span></td><td><span class="cross">&#10007;</span></td><td><span class="cross">&#10007;</span></td></tr>
+          <tr><td>Constrained Types</td><td><span class="check">&#10003;</span></td><td><span class="cross">&#10007;</span></td><td><span class="partial">partial</span></td></tr>
+          <tr><td>Nested Validation</td><td><span class="check">&#10003;</span></td><td><span class="check">&#10003;</span></td><td><span class="check">&#10003;</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Code Examples -->
+<section id="code" style="background: var(--code-bg);">
+  <div class="container">
+    <p class="section-label fade-in">Code Examples</p>
+    <h2 class="section-title fade-in">See it in action</h2>
+    <p class="section-subtitle fade-in">Real examples showing how Rusdantic simplifies validation in Rust.</p>
+    <div class="code-section fade-in">
+      <input type="radio" name="tabs" id="tab1" checked>
+      <input type="radio" name="tabs" id="tab2">
+      <input type="radio" name="tabs" id="tab3">
+      <input type="radio" name="tabs" id="tab4">
+      <div class="tabs">
+        <label for="tab1">Basic</label>
+        <label for="tab2">Coercion</label>
+        <label for="tab3">Sanitizers</label>
+        <label for="tab4">JSON Schema</label>
+      </div>
+      <div class="tab-panels">
+        <div class="tab-panel panel-1">
+<pre><span class="kw">use</span> rusdantic::prelude::*;
+
+<span class="attr">#[derive(Rusdantic)]</span>
+<span class="kw">struct</span> <span class="ty">User</span> {
+    <span class="attr">#[rusdantic(min_length = 1, max_length = 50)]</span>
+    name: <span class="ty">String</span>,
+
+    <span class="attr">#[rusdantic(email)]</span>
+    email: <span class="ty">String</span>,
+
+    <span class="attr">#[rusdantic(ge = 0, le = 150)]</span>
+    age: <span class="ty">u8</span>,
+}
+
+<span class="kw">fn</span> <span class="ty">main</span>() {
+    <span class="cm">// Valid data - succeeds</span>
+    <span class="kw">let</span> json = <span class="str">r#"{"name":"Alice","email":"alice@example.com","age":30}"#</span>;
+    <span class="kw">let</span> user: <span class="ty">User</span> = serde_json::from_str(json).unwrap();
+
+    <span class="cm">// Invalid data - fails at deserialization, never constructed</span>
+    <span class="kw">let</span> bad = <span class="str">r#"{"name":"","email":"not-email","age":200}"#</span>;
+    <span class="kw">assert!</span>(serde_json::from_str::&lt;<span class="ty">User</span>&gt;(bad).is_err());
+}</pre>
+        </div>
+        <div class="tab-panel panel-2">
+<pre><span class="kw">use</span> rusdantic::prelude::*;
+
+<span class="attr">#[derive(Rusdantic)]</span>
+<span class="attr">#[rusdantic(coerce_mode = "lax")]</span>
+<span class="kw">struct</span> <span class="ty">Config</span> {
+    <span class="cm">// "42" (string) will coerce to 42 (integer)</span>
+    port: <span class="ty">u16</span>,
+
+    <span class="cm">// "true", "1", "yes" all coerce to true</span>
+    debug: <span class="ty">bool</span>,
+
+    <span class="cm">// 3.14 (float) coerces to "3.14" (string)</span>
+    version: <span class="ty">String</span>,
+}
+
+<span class="kw">fn</span> <span class="ty">main</span>() {
+    <span class="kw">let</span> json = <span class="str">r#"{"port":"8080","debug":"yes","version":2.1}"#</span>;
+    <span class="kw">let</span> cfg: <span class="ty">Config</span> = serde_json::from_str(json).unwrap();
+    <span class="kw">assert_eq!</span>(cfg.port, <span class="num">8080</span>);
+    <span class="kw">assert_eq!</span>(cfg.debug, <span class="kw">true</span>);
+    <span class="kw">assert_eq!</span>(cfg.version, <span class="str">"2.1"</span>);
+}</pre>
+        </div>
+        <div class="tab-panel panel-3">
+<pre><span class="kw">use</span> rusdantic::prelude::*;
+
+<span class="attr">#[derive(Rusdantic)]</span>
+<span class="kw">struct</span> <span class="ty">Profile</span> {
+    <span class="attr">#[rusdantic(trim, min_length = 1)]</span>
+    name: <span class="ty">String</span>,
+
+    <span class="attr">#[rusdantic(trim, lowercase)]</span>
+    username: <span class="ty">String</span>,
+
+    <span class="attr">#[rusdantic(redact)]</span>
+    ssn: <span class="ty">String</span>,
+}
+
+<span class="kw">fn</span> <span class="ty">main</span>() {
+    <span class="kw">let</span> json = <span class="str">r#"{"name":"  Alice  ","username":" ALICE_99 ","ssn":"123-45-6789"}"#</span>;
+    <span class="kw">let</span> p: <span class="ty">Profile</span> = serde_json::from_str(json).unwrap();
+
+    <span class="kw">assert_eq!</span>(p.name, <span class="str">"Alice"</span>);       <span class="cm">// trimmed</span>
+    <span class="kw">assert_eq!</span>(p.username, <span class="str">"alice_99"</span>); <span class="cm">// trimmed + lowercased</span>
+    <span class="kw">println!</span>(<span class="str">"{}"</span>, p.ssn);              <span class="cm">// prints "**REDACTED**"</span>
+}</pre>
+        </div>
+        <div class="tab-panel panel-4">
+<pre><span class="kw">use</span> rusdantic::prelude::*;
+
+<span class="attr">#[derive(Rusdantic)]</span>
+<span class="kw">struct</span> <span class="ty">Event</span> {
+    <span class="attr">#[rusdantic(min_length = 1)]</span>
+    title: <span class="ty">String</span>,
+
+    <span class="attr">#[rusdantic(ge = 1)]</span>
+    attendees: <span class="ty">u32</span>,
+
+    <span class="attr">#[rusdantic(email)]</span>
+    organizer: <span class="ty">String</span>,
+}
+
+<span class="kw">fn</span> <span class="ty">main</span>() {
+    <span class="kw">let</span> schema = <span class="ty">Event</span>::json_schema();
+    <span class="kw">println!</span>(<span class="str">"{}"</span>, serde_json::to_string_pretty(&amp;schema).unwrap());
+
+    <span class="cm">// Output:</span>
+    <span class="cm">// {</span>
+    <span class="cm">//   "type": "object",</span>
+    <span class="cm">//   "properties": {</span>
+    <span class="cm">//     "title": { "type": "string", "minLength": 1 },</span>
+    <span class="cm">//     "attendees": { "type": "integer", "minimum": 1 },</span>
+    <span class="cm">//     "organizer": { "type": "string", "format": "email" }</span>
+    <span class="cm">//   },</span>
+    <span class="cm">//   "required": ["title", "attendees", "organizer"]</span>
+    <span class="cm">// }</span>
+}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- All Features -->
+<section id="all-features">
+  <div class="container">
+    <p class="section-label fade-in">Full Feature Set</p>
+    <h2 class="section-title fade-in">Everything included</h2>
+    <p class="section-subtitle fade-in">A batteries-included validation framework for Rust.</p>
+    <div class="feature-grid">
+      <div class="feature-item fade-in"><span class="feature-emoji">&#9989;</span><span>min_length / max_length</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#9989;</span><span>ge / le / gt / lt</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#9989;</span><span>email validator</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#9989;</span><span>url validator</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#9989;</span><span>regex / pattern</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#9989;</span><span>custom validator fn</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#9989;</span><span>one_of enum check</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#9999;</span><span>trim sanitizer</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#9999;</span><span>lowercase sanitizer</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#9999;</span><span>uppercase sanitizer</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#9999;</span><span>strip sanitizer</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#128274;</span><span>redact mode</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#128274;</span><span>mask mode</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#128274;</span><span>hash mode</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#128260;</span><span>type coercion</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#127991;</span><span>field aliases</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#128204;</span><span>enum validation</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#128194;</span><span>nested validation</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#128203;</span><span>partial validation</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#128190;</span><span>dump options</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#128207;</span><span>constrained types</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#9881;</span><span>settings management</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#128196;</span><span>JSON Schema output</span></div>
+      <div class="feature-item fade-in"><span class="feature-emoji">&#128272;</span><span>SecretStr type</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- Crate Ecosystem -->
+<section id="crates" style="background: var(--code-bg);">
+  <div class="container">
+    <p class="section-label fade-in">Crate Ecosystem</p>
+    <h2 class="section-title fade-in">Modular by design</h2>
+    <p class="section-subtitle fade-in">Use the facade crate for everything, or pick only what you need.</p>
+    <div class="crate-grid">
+      <div class="crate-card fade-in">
+        <h4>rusdantic</h4>
+        <p>Facade crate. Re-exports everything. One dependency to rule them all.</p>
+      </div>
+      <div class="crate-card fade-in">
+        <h4>rusdantic-core</h4>
+        <p>Runtime validation logic, error types, and the Validate trait.</p>
+      </div>
+      <div class="crate-card fade-in">
+        <h4>rusdantic-derive</h4>
+        <p>Proc macro that generates Serialize, Deserialize, and Validate impls.</p>
+      </div>
+      <div class="crate-card fade-in">
+        <h4>rusdantic-types</h4>
+        <p>Constrained types: SecretStr, EmailStr, PositiveInt, and more.</p>
+      </div>
+      <div class="crate-card fade-in">
+        <h4>rusdantic-settings</h4>
+        <p>Settings management: env vars, .env files, JSON, TOML config loading.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 10 Examples -->
+<section id="examples">
+  <div class="container">
+    <p class="section-label fade-in">Examples</p>
+    <h2 class="section-title fade-in">Learn by example</h2>
+    <p class="section-subtitle fade-in">Ten annotated examples covering every major feature.</p>
+    <div class="examples-grid">
+      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic/examples/basic_validation" class="example-card fade-in">
+        <div class="example-num">01</div>
+        <h4>basic_validation</h4>
+        <p>Simple struct with min/max length, email, and range validators.</p>
+      </a>
+      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic/examples/type_coercion" class="example-card fade-in">
+        <div class="example-num">02</div>
+        <h4>type_coercion</h4>
+        <p>Lax and strict coercion modes for strings, numbers, and booleans.</p>
+      </a>
+      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic/examples/sanitizers" class="example-card fade-in">
+        <div class="example-num">03</div>
+        <h4>sanitizers</h4>
+        <p>Trim, lowercase, uppercase, and strip sanitizers in action.</p>
+      </a>
+      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic/examples/pii_redaction" class="example-card fade-in">
+        <div class="example-num">04</div>
+        <h4>pii_redaction</h4>
+        <p>Redact, mask, and hash modes for protecting sensitive data.</p>
+      </a>
+      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic/examples/nested_models" class="example-card fade-in">
+        <div class="example-num">05</div>
+        <h4>nested_models</h4>
+        <p>Nested structs with recursive validation and error paths.</p>
+      </a>
+      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic/examples/enum_validation" class="example-card fade-in">
+        <div class="example-num">06</div>
+        <h4>enum_validation</h4>
+        <p>Validating enum variants with per-variant constraints.</p>
+      </a>
+      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic/examples/json_schema" class="example-card fade-in">
+        <div class="example-num">07</div>
+        <h4>json_schema</h4>
+        <p>Generate JSON Schema from any Rusdantic model.</p>
+      </a>
+      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic/examples/settings" class="example-card fade-in">
+        <div class="example-num">08</div>
+        <h4>settings</h4>
+        <p>Load config from env vars, .env files, and JSON/TOML.</p>
+      </a>
+      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic/examples/custom_validators" class="example-card fade-in">
+        <div class="example-num">09</div>
+        <h4>custom_validators</h4>
+        <p>Write custom validation functions with full error context.</p>
+      </a>
+      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic/examples/partial_validation" class="example-card fade-in">
+        <div class="example-num">10</div>
+        <h4>partial_validation</h4>
+        <p>Partial models for PATCH endpoints and incremental updates.</p>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/planexainc/monorepo/tree/main/services/rusdantic">GitHub</a>
+      <a href="https://crates.io/crates/rusdantic">crates.io</a>
+      <a href="https://docs.rs/rusdantic">docs.rs</a>
+    </div>
+    <div class="footer-meta">
+      <p>License: MIT OR Apache-2.0</p>
+      <p>Author: Manmohan Gehlot</p>
+      <p class="inspired">Inspired by Pydantic, built for Rust.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Fade-in on scroll
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
