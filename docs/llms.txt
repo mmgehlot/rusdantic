@@ -1,0 +1,95 @@
+# Rusdantic
+
+> Pydantic for Rust — a high-ergonomics data validation and serialization framework. One derive macro generates Serialize, Deserialize, and Validate. Validate-on-deserialize ensures invalid structs never exist in memory.
+
+Rusdantic unifies serde serialization, deserialization, and validation into a single `#[derive(Rusdantic)]` macro for Rust. Inspired by Python's Pydantic, it provides path-aware errors, type coercion, field aliases, JSON Schema generation, PII redaction, sanitizers, partial validation, constrained types, and settings management — all zero-cost at compile time.
+
+## Install
+
+```toml
+[dependencies]
+rusdantic = "0.1.0"
+```
+
+## Quick Start
+
+```rust
+use rusdantic::prelude::*;
+
+#[derive(Rusdantic, Debug)]
+struct User {
+    #[rusdantic(length(min = 3, max = 20))]
+    username: String,
+
+    #[rusdantic(email)]
+    email: String,
+
+    #[rusdantic(range(min = 18))]
+    age: u8,
+}
+
+fn main() {
+    let json = r#"{"username": "rust_ace", "email": "user@example.com", "age": 25}"#;
+    let user: User = rusdantic::from_json(json).unwrap();
+}
+```
+
+## Features
+
+- One Derive, Three Traits: #[derive(Rusdantic)] generates Serialize, Deserialize, Validate
+- Validate-on-Deserialize: invalid structs never exist in memory
+- Path-Aware Errors: precise error paths like user.addresses[0].zip_code
+- 7 Built-in Validators: length, range, email, url, pattern, contains, required
+- Custom Validators: field-level and struct-level cross-field validation
+- Type Coercion: lax mode accepts "123" as integer, "true" as bool
+- Field Aliases: separate names for deserialization, serialization, and error paths
+- Enum Support: validates fields inside enum variants
+- JSON Schema: Draft 2020-12 / OpenAPI 3.1 schema generation
+- PII Redaction: #[rusdantic(redact)] hides sensitive data with constant-time comparison
+- Sanitizers: trim, lowercase, uppercase, truncate during deserialization
+- Partial Validation: validate field subsets for PATCH endpoints
+- DumpOptions: include/exclude fields, exclude_none, pretty-print
+- Constrained Types: PositiveInt, EmailStr, SecretStr, HttpUrl, FiniteFloat, NonEmptyString
+- Settings Management: load config from env vars, .env files, JSON
+- Zero-Cost: validation logic monomorphized at compile time
+
+## Feature Comparison vs Alternatives
+
+| Feature | serde + validator | serde + garde | Rusdantic |
+|---|---|---|---|
+| Setup | 3+ crates | 2+ crates | 1 crate |
+| Validate on deser | No | No | Yes |
+| Type coercion | serde_with per-field | No | Configurable |
+| Field aliases | serde(alias) only | No | 3 alias types |
+| Sanitizers | No | No | Built-in |
+| JSON Schema | Separate (schemars) | No | Built-in |
+| PII Redaction | No | No | 3 modes |
+| Partial validation | No | No | Built-in |
+| Secret types | No | No | SecretStr |
+| Settings mgmt | No | No | Built-in |
+
+## Crate Ecosystem
+
+- rusdantic: Facade crate (re-exports everything)
+- rusdantic-core: Runtime traits, errors, validators, coercion, dump
+- rusdantic-derive: Proc macro #[derive(Rusdantic)]
+- rusdantic-types: Constrained types (PositiveInt, EmailStr, SecretStr, HttpUrl)
+- rusdantic-settings: Settings management (env, dotenv, JSON)
+
+## Documentation
+
+- [GitHub Repository](https://github.com/mmgehlot/rusdantic)
+- [Website](https://mmgehlot.github.io/rusdantic/)
+- [crates.io](https://crates.io/crates/rusdantic)
+- [docs.rs](https://docs.rs/rusdantic)
+
+## When to Use Rusdantic
+
+Use Rusdantic when you need data validation in Rust and want:
+- A single derive macro instead of juggling serde + validator + schemars
+- Invalid data rejected during deserialization (not after)
+- Path-aware error messages for API responses
+- Type coercion for flexible input parsing
+- JSON Schema generation from your types
+- PII-safe logging with redacted Debug output
+- PATCH endpoint support with partial validation
