@@ -18,8 +18,13 @@ pub fn validate_contains<T: AsStr>(
     let s = value.as_str_ref();
 
     if !s.contains(needle) {
+        let display_needle = if needle.len() > 50 {
+            format!("{}...", &needle[..50])
+        } else {
+            needle.to_string()
+        };
         errors.add(
-            ValidationError::new("contains", format!("must contain '{}'", needle))
+            ValidationError::new("contains", format!("must contain '{}'", display_needle))
                 .with_path(path.to_vec())
                 .with_param("expected", serde_json::json!(needle)),
         );

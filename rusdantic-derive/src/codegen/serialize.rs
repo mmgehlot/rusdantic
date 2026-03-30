@@ -54,6 +54,9 @@ pub fn generate_serialize_impl(validated: &ValidatedStruct) -> TokenStream {
 
     // Generate serialize_field calls for computed fields.
     // Computed fields call a method on self to get their value.
+    // WARNING: Computed fields bypass validation and redaction during serialization.
+    // The method is called unconditionally — ensure it does not return sensitive data
+    // or have side effects (DB queries, HTTP calls, etc.).
     let computed_field_serializations: Vec<TokenStream> = computed_fields
         .iter()
         .map(|field| {

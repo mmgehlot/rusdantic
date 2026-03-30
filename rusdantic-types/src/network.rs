@@ -18,6 +18,12 @@ pub struct HttpUrl(String);
 
 impl HttpUrl {
     /// Create a new validated HTTP URL.
+    ///
+    /// # Security Note
+    /// This validates URL syntax and scheme (http/https) but does NOT validate
+    /// the destination host. URLs like `http://localhost`, `http://169.254.169.254`,
+    /// or `http://10.0.0.1` are accepted. Callers must implement SSRF protection
+    /// separately if URLs are used for server-side requests.
     pub fn new(value: impl Into<String>) -> Result<Self, String> {
         let s = value.into();
         match url::Url::parse(&s) {

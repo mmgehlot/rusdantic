@@ -181,6 +181,9 @@ fn generate_field_validation(field: &ValidatedField) -> TokenStream {
         }
     } else if field.is_collection {
         // For collection fields: validate the collection itself AND each element
+        // NOTE: Collection validation assumes 0-based contiguous indexing (Vec-like).
+        // Custom collection types with sparse or non-sequential keys may produce
+        // incorrect path indices in error messages.
         let collection_rules: Vec<TokenStream> = field
             .rules
             .iter()

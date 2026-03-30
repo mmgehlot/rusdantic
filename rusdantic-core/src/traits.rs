@@ -26,6 +26,10 @@ use crate::error::ValidationErrors;
 /// let user = User { email: "not-an-email".to_string() };
 /// assert!(user.validate().is_err());
 /// ```
+/// # Custom Validators
+/// Custom validator functions must NOT panic. Panics during validation
+/// propagate through serde's error handling and may cause unexpected behavior.
+/// Always return `Err(ValidationError)` instead of panicking.
 pub trait Validate {
     /// Validate this value, collecting all validation errors.
     ///

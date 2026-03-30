@@ -203,7 +203,8 @@ pub trait Dump: Serialize {
             let formatter = serde_json::ser::PrettyFormatter::with_indent(&indent_bytes);
             let mut ser = serde_json::Serializer::with_formatter(buf, formatter);
             serde::Serialize::serialize(&value, &mut ser)?;
-            // SAFETY: serde_json always produces valid UTF-8
+            // SAFETY: serde_json (>=1.0) always produces valid UTF-8. This is guaranteed
+            // by the serde_json crate's specification and tested extensively.
             Ok(String::from_utf8(ser.into_inner()).unwrap())
         } else {
             serde_json::to_string(&value)

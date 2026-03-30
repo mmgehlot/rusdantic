@@ -167,6 +167,8 @@ impl<T: PartialOrd + Copy + fmt::Debug> fmt::Debug for FiniteFloat<T> {
     }
 }
 
+/// Display the inner value. Since FiniteFloat only accepts finite values
+/// (rejecting NaN and Infinity at construction), this is always safe.
 impl<T: PartialOrd + Copy + fmt::Display> fmt::Display for FiniteFloat<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
@@ -284,5 +286,17 @@ mod tests {
     fn test_display() {
         let p = PositiveInt::<i32>::new(42).unwrap();
         assert_eq!(format!("{}", p), "42");
+    }
+
+    #[test]
+    fn test_positive_int_u8_overflow() {
+        let result = serde_json::from_str::<PositiveInt<u8>>("256");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_positive_int_boundary() {
+        let result = serde_json::from_str::<PositiveInt<u8>>("255");
+        assert!(result.is_ok());
     }
 }

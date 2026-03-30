@@ -25,6 +25,7 @@ trybuild = { workspace = true }
 proptest = { workspace = true }
 criterion = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
+rusdantic-settings = { path = "../rusdantic-settings", version = "0.1.0" }
 
 [features]
 default = ["url-validation"]

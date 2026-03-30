@@ -45,6 +45,14 @@ pub fn validate_url<T: AsStr>(value: &T, path: &[PathSegment], errors: &mut Vali
 #[cfg(not(feature = "url-validation"))]
 pub fn validate_url<T: AsStr>(value: &T, path: &[PathSegment], errors: &mut ValidationErrors) {
     let s = value.as_str_ref();
+    // Only accept http:// and https:// schemes
+    if !s.starts_with("http://") && !s.starts_with("https://") {
+        errors.add(
+            ValidationError::new("url", "URL must use http or https scheme")
+                .with_path(path.to_vec()),
+        );
+        return;
+    }
     // Basic heuristic: must contain "://" and have something before and after it
     if !s.contains("://") || s.starts_with("://") || s.ends_with("://") {
         errors.add(ValidationError::new("url", "invalid URL format").with_path(path.to_vec()));

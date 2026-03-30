@@ -260,15 +260,10 @@ pub fn generate_deserialize_impl(validated: &ValidatedStruct) -> TokenStream {
         TokenStream::new()
     };
 
-    // For generic structs: we cannot generate the full custom Deserialize impl
-    // due to proc-macro token parsing issues with Deserialize<'de> bounds.
-    // Instead, we emit a compile-time error directing users to also derive
-    // serde::Deserialize and call .validate() after deserialization.
-    //
-    // This is an explicit, documented limitation rather than a silent bypass.
+    // LIMITATION: Generic structs do not get a custom Deserialize impl.
+    // Users must add #[derive(serde::Deserialize)] manually and call .validate()
+    // after deserialization. This is a known limitation documented in README.md.
     if has_type_params {
-        // Don't generate Deserialize — users must add serde::Deserialize separately.
-        // The Validate impl is always generated, so they can call .validate().
         return TokenStream::new();
     }
 

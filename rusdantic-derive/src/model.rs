@@ -231,6 +231,8 @@ pub enum ValidatorMode {
     #[default]
     After,
     /// Run before deserialization. Receives raw serde_json::Value.
+    /// NOTE: `Before` mode is parsed but NOT YET IMPLEMENTED in code generation.
+    /// Using `mode = "before"` will be silently ignored. This is a known limitation.
     Before,
     /// Wrap the validation pipeline with a handler.
     Wrap,

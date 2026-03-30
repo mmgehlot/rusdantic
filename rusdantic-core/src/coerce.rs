@@ -135,6 +135,11 @@ where
         }
 
         fn visit_f64<E: de::Error>(self, v: f64) -> Result<T, E> {
+            if !v.is_finite() {
+                return Err(de::Error::custom(
+                    "cannot coerce non-finite float (NaN/Infinity)",
+                ));
+            }
             // Convert f64 to string and parse to target type
             // This handles both f32 and f64 targets
             v.to_string().parse::<T>().map_err(de::Error::custom)

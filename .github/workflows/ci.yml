@@ -44,6 +44,8 @@ jobs:
           toolchain: ${{ matrix.rust }}
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --workspace --all-features
+      - name: Test no-default-features
+        run: cargo check --workspace --no-default-features -p rusdantic-core
 
   msrv:
     name: MSRV Check (1.70)
@@ -64,3 +66,5 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo doc --workspace --all-features --no-deps
+      - name: Doc tests
+        run: cargo test --workspace --doc --all-features

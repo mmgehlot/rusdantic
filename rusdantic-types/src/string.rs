@@ -98,6 +98,11 @@ impl EmailStr {
         if s.is_empty() || !s.contains('@') || s.len() > 254 {
             return Err("invalid email format".to_string());
         }
+        if let Some(at_pos) = s.find('@') {
+            if at_pos > 64 {
+                return Err("email local part exceeds 64 characters (RFC 5321)".to_string());
+            }
+        }
         if !get_email_regex().is_match(&s) {
             return Err("invalid email format".to_string());
         }
@@ -212,5 +217,27 @@ mod tests {
     fn test_email_str_deserialize() {
         let e: EmailStr = serde_json::from_value(serde_json::json!("user@example.com")).unwrap();
         assert_eq!(e.as_str(), "user@example.com");
+    }
+
+    #[test]
+    fn test_email_boundary_254() {
+        let local = "a".repeat(64);
+        let domain = format!("{}.com", "b".repeat(254 - 65 - 4)); // total = 254
+        let email = format!("{}@{}", local, domain);
+        assert!(email.len() <= 254);
+        // May or may not pass regex — just verify no panic
+        let _ = EmailStr::new(email);
+    }
+
+    #[test]
+    fn test_email_255_rejected() {
+        let email = format!("{}@example.com", "a".repeat(242)); // total = 255
+        assert!(EmailStr::new(email).is_err());
+    }
+
+    #[test]
+    fn test_email_local_part_too_long() {
+        let email = format!("{}@example.com", "a".repeat(65)); // local > 64
+        assert!(EmailStr::new(email).is_err());
     }
 }

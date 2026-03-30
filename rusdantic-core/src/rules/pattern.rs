@@ -22,6 +22,9 @@ use crate::rules::AsStr;
 /// If the pattern doesn't start with `^` and end with `$`, it's wrapped
 /// in `^(?:...)$` to ensure full-string matching. This prevents patterns
 /// like `[0-9]{5}` from matching within "abc12345xyz".
+///
+/// Wraps the pattern in a non-capturing group `(?:...)` to avoid changing
+/// the numbering of any capture groups in the user's original pattern.
 pub fn anchor_pattern(pattern: &str) -> String {
     let starts = pattern.starts_with('^');
     let ends = pattern.ends_with('$');
@@ -48,10 +51,18 @@ pub fn validate_pattern<T: AsStr>(
     let s = value.as_str_ref();
 
     if !regex.is_match(s) {
+        let display_pattern = if pattern_str.len() > 50 {
+            format!("{}...", &pattern_str[..50])
+        } else {
+            pattern_str.to_string()
+        };
         errors.add(
-            ValidationError::new("pattern", format!("must match pattern '{}'", pattern_str))
-                .with_path(path.to_vec())
-                .with_param("pattern", serde_json::json!(pattern_str)),
+            ValidationError::new(
+                "pattern",
+                format!("must match pattern '{}'", display_pattern),
+            )
+            .with_path(path.to_vec())
+            .with_param("pattern", serde_json::json!(pattern_str)),
         );
     }
 }

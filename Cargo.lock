@@ -788,6 +788,7 @@ dependencies = [
  "proptest",
  "rusdantic-core",
  "rusdantic-derive",
+ "rusdantic-settings",
  "rusdantic-types",
  "serde",
  "serde_json",

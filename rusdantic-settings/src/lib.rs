@@ -197,6 +197,10 @@ pub trait Settings: DeserializeOwned + Sized {
 /// This allows settings structs to have `port: u16` fields that load correctly
 /// from environment variables like `PORT=8080`.
 fn coerce_env_value(value: &str) -> serde_json::Value {
+    const MAX_ENV_VALUE_LEN: usize = 1_000_000; // 1MB limit
+    if value.len() > MAX_ENV_VALUE_LEN {
+        return serde_json::Value::String("[value too large]".to_string());
+    }
     // Try bool
     match value.to_lowercase().as_str() {
         "true" => return serde_json::Value::Bool(true),
@@ -306,5 +310,23 @@ mod tests {
         assert_eq!(config.value, 42);
 
         std::fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn test_coerce_scientific_notation() {
+        let val = coerce_env_value("1e10");
+        assert!(val.is_number()); // Should parse as float
+    }
+
+    #[test]
+    fn test_coerce_empty_string() {
+        let val = coerce_env_value("");
+        assert_eq!(val, serde_json::Value::String("".to_string()));
+    }
+
+    #[test]
+    fn test_coerce_true_case_insensitive() {
+        let val = coerce_env_value("true");
+        assert_eq!(val, serde_json::json!(true));
     }
 }
